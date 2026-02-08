@@ -20,7 +20,7 @@
     "react-hot-toast": "^2.6.0"
   },
   "devDependencies": {
-   
+    
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
