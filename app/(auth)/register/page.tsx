@@ -38,6 +38,7 @@ export default function RegisterPage() {
     register,
     handleSubmit,
     formState: { errors },
+    watch,
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -48,6 +49,9 @@ export default function RegisterPage() {
       password_confirm: '',
     },
   });
+
+  const password = watch('password');
+  const passwordConfirm = watch('password_confirm');
 
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
@@ -74,6 +78,31 @@ export default function RegisterPage() {
       setIsLoading(false);
     }
   };
+
+  // Password strength indicator
+  const getPasswordStrength = (password: string) => {
+    if (!password) return { score: 0, text: '', color: 'gray' };
+    
+    let score = 0;
+    if (password.length >= 8) score += 1;
+    if (/[A-Z]/.test(password)) score += 1;
+    if (/[a-z]/.test(password)) score += 1;
+    if (/[0-9]/.test(password)) score += 1;
+    if (/[^A-Za-z0-9]/.test(password)) score += 1;
+    
+    const strength = [
+      { text: 'Very Weak', color: 'danger' },
+      { text: 'Weak', color: 'danger' },
+      { text: 'Fair', color: 'warning' },
+      { text: 'Good', color: 'primary' },
+      { text: 'Strong', color: 'success' },
+      { text: 'Very Strong', color: 'success' },
+    ];
+    
+    return { score, ...strength[Math.min(score, 5)] };
+  };
+
+  const passwordStrength = getPasswordStrength(password);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -132,26 +161,96 @@ export default function RegisterPage() {
               {...register('email')}
             />
 
-            <Input
-              label="Password"
-              type="password"
-              autoComplete="new-password"
-              error={errors.password?.message}
-              leftIcon={<Lock className="h-5 w-5" />}
-              placeholder="••••••••"
-              helperText="At least 8 characters with uppercase, lowercase, and number"
-              {...register('password')}
-            />
+            <div>
+              <Input
+                label="Password"
+                type="password"
+                autoComplete="new-password"
+                error={errors.password?.message}
+                leftIcon={<Lock className="h-5 w-5" />}
+                placeholder="Enter your password"
+                showPasswordToggle
+                {...register('password')}
+              />
+              
+              {password && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-gray-500">Password strength:</span>
+                    <span className={`text-xs font-medium ${
+                      passwordStrength.color === 'danger' ? 'text-danger-600' :
+                      passwordStrength.color === 'warning' ? 'text-warning-600' :
+                      passwordStrength.color === 'primary' ? 'text-primary-600' :
+                      'text-success-600'
+                    }`}>
+                      {passwordStrength.text}
+                    </span>
+                  </div>
+                  <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full ${
+                        passwordStrength.color === 'danger' ? 'bg-danger-500' :
+                        passwordStrength.color === 'warning' ? 'bg-warning-500' :
+                        passwordStrength.color === 'primary' ? 'bg-primary-500' :
+                        'bg-success-500'
+                      }`}
+                      style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              <div className="mt-2 text-xs text-gray-500">
+                <p>Password must contain:</p>
+                <ul className="list-disc list-inside ml-2 mt-1 space-y-1">
+                  <li className={password?.length >= 8 ? 'text-success-600' : ''}>
+                    At least 8 characters
+                  </li>
+                  <li className={/[A-Z]/.test(password || '') ? 'text-success-600' : ''}>
+                    One uppercase letter
+                  </li>
+                  <li className={/[a-z]/.test(password || '') ? 'text-success-600' : ''}>
+                    One lowercase letter
+                  </li>
+                  <li className={/[0-9]/.test(password || '') ? 'text-success-600' : ''}>
+                    One number
+                  </li>
+                </ul>
+              </div>
+            </div>
 
-            <Input
-              label="Confirm password"
-              type="password"
-              autoComplete="new-password"
-              error={errors.password_confirm?.message}
-              leftIcon={<Lock className="h-5 w-5" />}
-              placeholder="••••••••"
-              {...register('password_confirm')}
-            />
+            <div>
+              <Input
+                label="Confirm password"
+                type="password"
+                autoComplete="new-password"
+                error={errors.password_confirm?.message}
+                leftIcon={<Lock className="h-5 w-5" />}
+                placeholder="Confirm your password"
+                showPasswordToggle
+                {...register('password_confirm')}
+              />
+              
+              {passwordConfirm && password && (
+                <div className="mt-2">
+                  {password === passwordConfirm ? (
+                    <p className="text-xs text-success-600 flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Passwords match
+                    </p>
+                  ) : (
+                    <p className="text-xs text-danger-600 flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                      Passwords do not match
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
 
             <div className="flex items-center">
               <input
