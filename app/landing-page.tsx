@@ -73,13 +73,13 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center space-x-4">
             <Link
-              href="/auth/login"
+              href="/login"
               className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
             >
               Sign In
             </Link>
             <Link 
-              href="/auth/register"
+              href="/register"
               className="bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
             >
               Get Started Free
@@ -187,7 +187,7 @@ export default function LandingPage() {
               Get Started Free for 14 Days
             </Link>
             <Link 
-              href="/auth/login"
+              href="/login"
               className="bg-transparent border-2 border-white text-white px-8 py-3 rounded-lg hover:bg-white/10 transition-colors font-medium text-lg"
             >
               Book a Demo

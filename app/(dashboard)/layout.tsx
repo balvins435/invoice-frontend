@@ -3,32 +3,36 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
+import { authService } from '@/lib/auth';
 import { Spinner } from '@/components/ui/Spinner';
 
 export default function DashboardLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check authentication
-    const token = localStorage.getItem('access_token');
-    
-    if (!token) {
-      router.push('/auth/login');
-    } else {
-      setIsAuthenticated(true);
-      setIsLoading(false);
-    }
+    const checkAuth = async () => {
+      const isAuth = await authService.checkAuth();
+      
+      if (!isAuth) {
+        router.push('/login');
+      } else {
+        setIsAuthenticated(true);
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
   }, [router]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Spinner size="lg" className="mb-4" />
           <p className="text-gray-600">Loading your dashboard...</p>
