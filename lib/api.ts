@@ -84,16 +84,16 @@ api.interceptors.response.use(
 export const apiService = {
   // Auth endpoints
   auth: {
-    register: (data: any) => api.post('/users/register/', data),
-    login: (data: any) => api.post('/users/login/', data),
-    logout: () => api.post('/users/logout/'),
-    getCurrentUser: () => api.get('/users/me/'),
+    register: (data: any) => api.post('/register/', data),
+    login: (data: any) => api.post('/login/', data),
+    logout: (p0: { refresh: string; }) => api.post('/logout/', p0),
+    getCurrentUser: () => api.get('/me/'),
     refreshToken: (refresh: string) => 
-      api.post('/users/token/refresh/', { refresh }),
+      api.post('/token/refresh/', { refresh }),
     changePassword: (data: any) => 
-      api.put('/users/me/change-password/', data),
+      api.put('/me/change-password/', data),
     updateProfile: (data: any) => 
-      api.patch('/users/me/update-profile/', data),
+      api.patch('/me/update-profile/', data),
   },
 
   // Business endpoints
