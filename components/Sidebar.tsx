@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   Home, 
   FileText, 
@@ -14,9 +14,8 @@ import {
   Menu,
   X,
   User,
+  ChevronRight
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { authService } from '@/lib/auth';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -29,11 +28,18 @@ const navigation = [
 export const Sidebar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
-  const user = authService.getUser();
+  const router = useRouter();
 
-  const handleLogout = async () => {
-    await authService.logout();
-    window.location.href = '/login';
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    router.push('/auth/login');
+  };
+
+  const user = {
+    name: 'Demo User',
+    email: 'demo@example.com',
   };
 
   return (
@@ -41,7 +47,7 @@ export const Sidebar: React.FC = () => {
       {/* Mobile menu button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-40 p-2 rounded-lg bg-white shadow-sm border border-gray-200"
+        className="lg:hidden fixed top-4 left-4 z-40 p-2 rounded-lg bg-white shadow-md border border-gray-200"
       >
         <Menu className="h-5 w-5" />
       </button>
@@ -55,13 +61,11 @@ export const Sidebar: React.FC = () => {
       )}
 
       {/* Sidebar */}
-      <aside
-        className={cn(
-          'fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-40',
-          'transform transition-transform duration-200 ease-in-out',
-          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        )}
-      >
+      <aside className={`
+        fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-40
+        transform transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
         {/* Close button for mobile */}
         <button
           onClick={() => setIsOpen(false)}
@@ -71,30 +75,33 @@ export const Sidebar: React.FC = () => {
         </button>
 
         {/* Logo */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h1 className="text-xl font-bold text-primary-600">InvoiceTracker</h1>
-          <p className="text-sm text-gray-500 mt-1">Smart Business Management</p>
+        <div className="px-6 py-5 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center">
+              <FileText className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-blue-600">InvoiceTracker</h1>
+              <p className="text-xs text-gray-500">Smart Business Management</p>
+            </div>
+          </div>
         </div>
 
         {/* User info */}
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-5 border-b border-gray-200">
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
-              <User className="h-5 w-5 text-primary-600" />
+            <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+              <User className="h-6 w-6 text-blue-600" />
             </div>
-            <div>
-              <p className="font-medium text-gray-900">
-                {user?.first_name && user?.last_name 
-                  ? `${user.first_name} ${user.last_name}`
-                  : user?.email}
-              </p>
-              <p className="text-sm text-gray-500">{user?.email}</p>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-gray-900 truncate">{user.name}</p>
+              <p className="text-sm text-gray-500 truncate">{user.email}</p>
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="px-4 py-6">
+        <nav className="px-3 py-6">
           <ul className="space-y-1">
             {navigation.map((item) => {
               const Icon = item.icon;
@@ -105,16 +112,20 @@ export const Sidebar: React.FC = () => {
                   <Link
                     href={item.href}
                     onClick={() => setIsOpen(false)}
-                    className={cn(
-                      'flex items-center px-3 py-2 rounded-lg text-sm font-medium',
-                      'transition-colors duration-150',
-                      isActive
-                        ? 'bg-primary-50 text-primary-600'
+                    className={`
+                      flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium
+                      transition-all duration-200
+                      ${isActive
+                        ? 'bg-blue-50 text-blue-600 border border-blue-100'
                         : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                    )}
+                      }
+                    `}
                   >
-                    <Icon className="mr-3 h-5 w-5" />
-                    {item.name}
+                    <div className="flex items-center">
+                      <Icon className="mr-3 h-5 w-5" />
+                      {item.name}
+                    </div>
+                    {isActive && <ChevronRight className="h-4 w-4" />}
                   </Link>
                 </li>
               );
@@ -127,14 +138,15 @@ export const Sidebar: React.FC = () => {
           <div className="space-y-2">
             <Link
               href="/dashboard/settings"
-              className="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="flex items-center px-4 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              onClick={() => setIsOpen(false)}
             >
               <Settings className="mr-3 h-5 w-5" />
               Settings
             </Link>
             <button
               onClick={handleLogout}
-              className="flex items-center w-full px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <LogOut className="mr-3 h-5 w-5" />
               Logout
