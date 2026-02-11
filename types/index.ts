@@ -80,6 +80,14 @@ export interface CreateInvoiceData {
   status?: 'draft' | 'sent' | 'paid';
 }
 
+export interface InvoiceFilters {
+  status?: 'draft' | 'sent' | 'paid';
+  client_name?: string;
+  date_from?: string;
+  date_to?: string;
+  business_id?: number;
+}
+
 // Expense Types
 export interface Expense {
   id: number;

@@ -19,10 +19,10 @@ import {
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
-  { name: 'Invoices', href: '/dashboard/invoices', icon: FileText },
-  { name: 'Expenses', href: '/dashboard/expenses', icon: CreditCard },
-  { name: 'Reports', href: '/dashboard/reports', icon: BarChart3 },
-  { name: 'Business', href: '/dashboard/business', icon: Building },
+  { name: 'Invoices', href: '/invoices', icon: FileText },
+  { name: 'Expenses', href: '/expenses', icon: CreditCard },
+  { name: 'Reports', href: '/reports', icon: BarChart3 },
+  { name: 'Business', href: '/business', icon: Building },
 ];
 
 export const Sidebar: React.FC = () => {

@@ -1,5 +1,5 @@
-import { User, AuthResponse } from '@/types';
-import { apiService, clearAuthTokens, setAuthTokens } from './api';
+import { User } from '@/types';
+import api, { setAuthTokens, clearAuthTokens } from './api';
 
 class AuthService {
   private user: User | null = null;
@@ -8,6 +8,12 @@ class AuthService {
   constructor() {
     if (typeof window !== 'undefined') {
       this.loadUserFromStorage();
+      this.token = localStorage.getItem('access_token');
+      
+      // Set token in axios defaults if exists
+      if (this.token) {
+        api.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
+      }
     }
   }
 
@@ -17,58 +23,146 @@ class AuthService {
       if (userStr) {
         this.user = JSON.parse(userStr);
       }
-      this.token = localStorage.getItem('access_token');
     } catch (error) {
       console.error('Failed to load user from storage:', error);
-      this.clearAuth();
     }
   }
 
   private saveUserToStorage(user: User) {
-    localStorage.setItem('user', JSON.stringify(user));
-    this.user = user;
-  }
-
-  async register(email: string, password: string, firstName?: string, lastName?: string) {
-    try {
-      const response = await apiService.auth.register({
-        email,
-        password,
-        password_confirm: password,
-        first_name: firstName,
-        last_name: lastName,
-      });
-
-      const { user, tokens } = response.data;
-      setAuthTokens(tokens);
-      this.saveUserToStorage(user);
-
-      return { success: true, user };
-    } catch (error: any) {
-      return { 
-        success: false, 
-        error: error.response?.data?.error || 'Registration failed' 
-      };
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('user', JSON.stringify(user));
+      this.user = user;
     }
   }
 
   async login(email: string, password: string) {
     try {
-      const response = await apiService.auth.login({
+      console.log('📤 Sending login request...');
+      
+      const response = await api.post('/login/', {
         email,
         password,
       });
-
-      const { user, tokens } = response.data;
+      
+      const tokens = response.data;
+      console.log('📥 Received tokens');
+      
+      // Save tokens
       setAuthTokens(tokens);
-      this.saveUserToStorage(user);
-
-      return { success: true, user };
+      this.token = tokens.access;
+      
+      // Set default authorization header
+      api.defaults.headers.common['Authorization'] = `Bearer ${tokens.access}`;
+      
+      // Fetch user profile
+      console.log('👤 Fetching user profile...');
+      const userResponse = await api.get('/me/');
+      const userData = userResponse.data;
+      
+      console.log('✅ User profile loaded:', userData.email);
+      
+      // Save user data
+      this.saveUserToStorage(userData);
+      
+      return { 
+        success: true, 
+        user: userData,
+        tokens 
+      };
+      
     } catch (error: any) {
+      console.error('❌ Login failed:', error);
+      
+      let errorMessage = 'Login failed';
+      
+      if (error.response) {
+        errorMessage = error.response.data?.detail || 
+                      error.response.data?.message ||
+                      error.response.data?.error ||
+                      `Server error: ${error.response.status}`;
+      } else if (error.request) {
+        errorMessage = 'Cannot connect to server. Please check if backend is running.';
+      } else {
+        errorMessage = error.message;
+      }
+      
       return { 
         success: false, 
-        error: error.response?.data?.error || 'Login failed' 
+        error: errorMessage 
       };
+    }
+  }
+
+  async checkAuth(): Promise<boolean> {
+    const token = localStorage.getItem('access_token');
+    
+    if (!token) {
+      console.log('No token found');
+      this.clearAuth();
+      return false;
+    }
+
+    // Set token in axios defaults
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    this.token = token;
+    
+    try {
+      console.log('🔍 Checking authentication...');
+      const response = await api.get('/me/');
+      const userData = response.data;
+      
+      this.saveUserToStorage(userData);
+      console.log('✅ Auth check passed for:', userData.email);
+      return true;
+      
+    } catch (error: any) {
+      console.error('❌ Auth check failed:', error.response?.status || error.message);
+      
+      // If 401, token is invalid/expired
+      if (error.response?.status === 401) {
+        console.log('Token expired, attempting refresh...');
+        
+        try {
+          const refreshed = await this.refreshToken();
+          if (refreshed) {
+            // Retry auth check
+            return this.checkAuth();
+          }
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError);
+        }
+      }
+      
+      this.clearAuth();
+      return false;
+    }
+  }
+
+  async refreshToken(): Promise<boolean> {
+    const refreshToken = localStorage.getItem('refresh_token');
+    
+    if (!refreshToken) {
+      return false;
+    }
+    
+    try {
+      const response = await api.post('/token/refresh/', {
+        refresh: refreshToken,
+      });
+      
+      const { access } = response.data;
+      
+      // Save new access token
+      localStorage.setItem('access_token', access);
+      api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
+      this.token = access;
+      
+      console.log('✅ Token refreshed successfully');
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Token refresh failed:', error);
+      return false;
     }
   }
 
@@ -76,56 +170,32 @@ class AuthService {
     try {
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
-        await apiService.auth.logout({ refresh: refreshToken });
+        await api.post('/logout/', { refresh: refreshToken });
       }
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
       this.clearAuth();
-    }
-  }
-
-  async getCurrentUser() {
-    try {
-      const response = await apiService.auth.getCurrentUser();
-      const user = response.data;
-      this.saveUserToStorage(user);
-      return { success: true, user };
-    } catch (error: any) {
-      this.clearAuth();
-      return { 
-        success: false, 
-        error: error.response?.data?.error || 'Failed to fetch user' 
-      };
-    }
-  }
-
-  async refreshToken() {
-    try {
-      const refreshToken = localStorage.getItem('refresh_token');
-      if (!refreshToken) {
-        throw new Error('No refresh token available');
+      
+      // Redirect to login
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
       }
-
-      const response = await apiService.auth.refreshToken(refreshToken);
-      const { access } = response.data.tokens;
-      localStorage.setItem('access_token', access);
-      this.token = access;
-
-      return { success: true, token: access };
-    } catch (error: any) {
-      this.clearAuth();
-      return { 
-        success: false, 
-        error: error.response?.data?.error || 'Token refresh failed' 
-      };
     }
   }
 
   clearAuth() {
     clearAuthTokens();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user');
+      
+      // Remove authorization header
+      delete api.defaults.headers.common['Authorization'];
+    }
     this.user = null;
     this.token = null;
+    
+    console.log('🧹 Auth cleared');
   }
 
   isAuthenticated(): boolean {
@@ -139,20 +209,7 @@ class AuthService {
   getToken(): string | null {
     return this.token;
   }
-
-  async checkAuth(): Promise<boolean> {
-    if (!this.token) {
-      return false;
-    }
-
-    try {
-      await this.getCurrentUser();
-      return true;
-    } catch {
-      return false;
-    }
-  }
 }
 
-// Create singleton instance
+// Create and export singleton instance
 export const authService = new AuthService();

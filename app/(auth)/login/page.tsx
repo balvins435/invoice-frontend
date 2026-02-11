@@ -36,25 +36,34 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true);
+  setIsLoading(true);
+  
+  try {
+    const result = await authService.login(data.email, data.password);
     
-    try {
-      const result = await authService.login(data.email, data.password);
+    if (result.success) {
+      toast.success('Login successful! Redirecting...', {
+        duration: 2000,
+      });
       
-      if (result.success) {
-        toast.success('Login successful! Redirecting...');
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 1000);
-      } else {
-        toast.error(result.error || 'Login failed');
-      }
-    } catch (error) {
-      toast.error('An unexpected error occurred');
-    } finally {
-      setIsLoading(false);
+      // Small delay to show success message
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 500);
+      
+    } else {
+      // Show specific error message
+      toast.error(result.error || 'Login failed. Please check your credentials.');
+      
+      // Clear password field on error
+      setValue('password', '');
     }
-  };
+  } catch (error) {
+    toast.error('An unexpected error occurred');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">

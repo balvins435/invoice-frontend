@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Plus, Search, Filter, Download, Mail, Eye, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Filter, Download, Mail, Eye, Edit, Trash2, FileText } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -164,7 +164,7 @@ export default function InvoicesPage() {
                 Filters
               </Button>
               
-              <Link href="/dashboard/invoices/create">
+              <Link href="/invoices/create">
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
                   New Invoice
@@ -253,7 +253,7 @@ export default function InvoicesPage() {
               <p className="text-gray-500 mb-6">
                 {searchQuery ? 'Try changing your search query' : 'Get started by creating your first invoice'}
               </p>
-              <Link href="/dashboard/invoices/create">
+              <Link href="/invoices/create">
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
                   Create Invoice
@@ -320,7 +320,7 @@ export default function InvoicesPage() {
                             <Mail className="h-4 w-4" />
                           </button>
                           
-                          <Link href={`/dashboard/invoices/${invoice.id}`}>
+                          <Link href={`/invoices/${invoice.id}`}>
                             <button
                               className="p-1 text-gray-400 hover:text-gray-600"
                               title="View"
@@ -329,7 +329,7 @@ export default function InvoicesPage() {
                             </button>
                           </Link>
                           
-                          <Link href={`/dashboard/invoices/${invoice.id}/edit`}>
+                          <Link href={`/invoices/${invoice.id}/edit`}>
                             <button
                               className="p-1 text-gray-400 hover:text-gray-600"
                               title="Edit"
