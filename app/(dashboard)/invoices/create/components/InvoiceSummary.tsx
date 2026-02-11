@@ -5,7 +5,9 @@ import { Receipt, Percent, Calculator, TrendingUp, FileText, Info } from 'lucide
 import { formatCurrency } from '@/lib/utils';
 
 interface InvoiceSummaryProps {
-  items: Array<{ quantity: number; unit_price: number; total: number }>;
+  items: Array<{
+    description: any; quantity: number; unit_price: number; total: number 
+}>;
   taxRate: number;
 }
 
