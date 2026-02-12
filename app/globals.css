@@ -64,4 +64,57 @@ body {
   .table-cell {
     @apply px-6 py-4 whitespace-nowrap text-sm text-gray-900;
   }
+
+  /* Mobile-first responsive styles */
+@media (max-width: 640px) {
+  .container {
+    @apply px-4;
+  }
+  
+  .expense-form-grid {
+    @apply grid-cols-1;
+  }
+}
+
+/* Print styles for receipts */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+}
+
+/* Custom animations */
+@keyframes slideIn {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.expense-item-enter {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Receipt upload zone */
+.receipt-upload-zone {
+  transition: all 0.2s ease;
+}
+
+.receipt-upload-zone:hover {
+  @apply border-primary bg-primary/5;
+}
+
+.receipt-upload-zone.dragging {
+  @apply border-primary bg-primary/10 scale-105;
+
+}
+
 }
