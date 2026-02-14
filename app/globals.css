@@ -9,13 +9,6 @@
   --foreground: #171717;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   color: var(--foreground);
   background: var(--background);
@@ -73,6 +66,16 @@ body {
   
   .expense-form-grid {
     @apply grid-cols-1;
+  }
+}
+
+@layer utilities {
+  .text-muted-foreground {
+    @apply text-gray-500;
+  }
+
+  .bg-muted {
+    @apply bg-gray-100;
   }
 }
 

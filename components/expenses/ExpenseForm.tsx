@@ -5,34 +5,18 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { CalendarIcon, Camera, Receipt, Loader2 } from 'lucide-react';
+import { Camera, Loader2 } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
+} from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/utils';
 import { EXPENSE_CATEGORIES } from '@/types/expense';
 import { useCreateExpense, useUpdateExpense } from '@/lib/hooks/useExpenses';
@@ -43,7 +27,7 @@ const expenseSchema = z.object({
   category: z.string().min(1, 'Please select a category'),
   amount: z.number().min(0.01, 'Amount must be greater than 0'),
   expense_date: z.date(),
-  tax_deductible: z.boolean().default(true),
+  tax_deductible: z.boolean(),
   notes: z.string().optional(),
 });
 
@@ -108,6 +92,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
     try {
       const formattedData = {
         ...data,
+        category: data.category as keyof typeof EXPENSE_CATEGORIES,
         expense_date: format(data.expense_date, 'yyyy-MM-dd'),
         amount: Number(data.amount),
         receipt: receiptFile || undefined,
@@ -170,7 +155,9 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
           <CardContent className="space-y-4">
             {/* Title */}
             <div className="space-y-2">
-              <Label htmlFor="title">Expense Title *</Label>
+              <label htmlFor="title" className="text-sm font-medium">
+                Expense Title *
+              </label>
               <Input
                 id="title"
                 {...register('title')}
@@ -184,25 +171,25 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
             {/* Category */}
             <div className="space-y-2">
-              <Label htmlFor="category">Category *</Label>
-              <Select
-                onValueChange={(value) => setValue('category', value)}
-                defaultValue={initialData?.category}
+              <label htmlFor="category" className="text-sm font-medium">
+                Category *
+              </label>
+              <select
+                id="category"
+                {...register('category')}
+                className={cn(
+                  'flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm',
+                  'focus:border-primary-500 focus:outline-none',
+                  errors.category && 'border-red-500'
+                )}
               >
-                <SelectTrigger className={cn(errors.category && 'border-red-500')}>
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {EXPENSE_CATEGORIES.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      <span className="flex items-center gap-2">
-                        <span>{category.icon}</span>
-                        <span>{category.label}</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <option value="">Select a category</option>
+                {Object.entries(EXPENSE_CATEGORIES).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
               {errors.category && (
                 <p className="text-sm text-red-500">{errors.category.message}</p>
               )}
@@ -210,7 +197,9 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
             {/* Amount */}
             <div className="space-y-2">
-              <Label htmlFor="amount">Amount *</Label>
+              <label htmlFor="amount" className="text-sm font-medium">
+                Amount *
+              </label>
               <div className="relative">
                 <span className="absolute left-3 top-2.5 text-muted-foreground">
                   KES
@@ -241,46 +230,39 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
             {/* Date */}
             <div className="space-y-2">
-              <Label>Expense Date *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      'w-full justify-start text-left font-normal',
-                      !date && 'text-muted-foreground'
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, 'PPP') : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={(date) => {
-                      setDate(date || new Date());
-                      setValue('expense_date', date || new Date());
-                    }}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <label htmlFor="expense_date" className="text-sm font-medium">
+                Expense Date *
+              </label>
+              <Input
+                id="expense_date"
+                type="date"
+                value={format(date, 'yyyy-MM-dd')}
+                onChange={(e) => {
+                  const nextDate = new Date(e.target.value);
+                  if (!Number.isNaN(nextDate.getTime())) {
+                    setDate(nextDate);
+                    setValue('expense_date', nextDate);
+                  }
+                }}
+              />
             </div>
 
             {/* Tax Deductible Switch */}
             <div className="flex items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
-                <Label htmlFor="tax-deductible">Tax Deductible</Label>
+                <label htmlFor="tax-deductible" className="text-sm font-medium">
+                  Tax Deductible
+                </label>
                 <p className="text-sm text-muted-foreground">
                   This expense can be deducted from your taxable income
                 </p>
               </div>
-              <Switch
+              <input
                 id="tax-deductible"
+                type="checkbox"
                 checked={isTaxDeductible}
-                onCheckedChange={(checked) => setValue('tax_deductible', checked)}
+                onChange={(e) => setValue('tax_deductible', e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
               />
             </div>
           </CardContent>
@@ -294,19 +276,21 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
           <CardContent className="space-y-4">
             {/* Notes */}
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
+              <label htmlFor="notes" className="text-sm font-medium">
+                Notes
+              </label>
+              <textarea
                 id="notes"
                 {...register('notes')}
                 placeholder="Add any additional details about this expense..."
-                className="min-h-[120px]"
+                className="min-h-[120px] w-full rounded-lg border border-gray-300 p-3 text-sm focus:border-primary-500 focus:outline-none"
               />
             </div>
 
             {/* Receipt Upload */}
             <div className="space-y-2">
-              <Label>Receipt (Optional)</Label>
-              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6">
+              <p className="text-sm font-medium">Receipt (Optional)</p>
+              <div className="relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6">
                 {receiptPreview ? (
                   <div className="relative w-full">
                     <img

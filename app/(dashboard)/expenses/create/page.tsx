@@ -6,16 +6,15 @@ import Link from 'next/link';
 import { ArrowLeft, Receipt, TrendingDown } from 'lucide-react';
 
 import { ExpenseForm } from '@/components/expenses/ExpenseForm';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+} from '@/components/ui/Card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
 
 export default function CreateExpensePage() {
   const router = useRouter();
@@ -146,7 +145,7 @@ export default function CreateExpensePage() {
                     className="h-auto flex-col py-3 text-xs"
                     onClick={() => {
                       // Pre-fill form with common expense
-                      const titleInput = document.getElementById('title');
+                      const titleInput = document.getElementById('title') as HTMLInputElement | null;
                       if (titleInput) {
                         titleInput.value = expense.title;
                         // Trigger change event

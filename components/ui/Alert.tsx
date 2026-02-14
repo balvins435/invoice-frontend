@@ -23,6 +23,32 @@ interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   onDismiss?: () => void;
 }
 
+const AlertTitle = React.forwardRef<
+  HTMLHeadingElement,
+  React.HTMLAttributes<HTMLHeadingElement>
+>(({ className, ...props }, ref) => (
+  <h4
+    ref={ref}
+    className={cn('font-medium mb-1', className)}
+    {...props}
+  />
+));
+
+AlertTitle.displayName = 'AlertTitle';
+
+const AlertDescription = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn('text-sm', className)}
+    {...props}
+  />
+));
+
+AlertDescription.displayName = 'AlertDescription';
+
 const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
   ({ className, variant = 'info', title, children, dismissible, onDismiss, ...props }, ref) => {
     const Icon = icons[variant];
@@ -40,10 +66,14 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
         <div className="flex items-start">
           <Icon className="h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
           <div className="flex-1">
-            {title && (
-              <h4 className="font-medium mb-1">{title}</h4>
+            {title ? (
+              <>
+                <AlertTitle>{title}</AlertTitle>
+                <AlertDescription>{children}</AlertDescription>
+              </>
+            ) : (
+              children
             )}
-            <div className="text-sm">{children}</div>
           </div>
           {dismissible && (
             <button
@@ -61,4 +91,4 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
 
 Alert.displayName = 'Alert';
 
-export { Alert };
+export { Alert, AlertDescription, AlertTitle };

@@ -160,3 +160,7 @@ export interface RegisterFormData {
   password: string;
   password_confirm: string;
 }
+
+// Expense category constants/types
+export { EXPENSE_CATEGORIES } from './expense';
+export type { ExpenseCategory, ExpenseFilters } from './expense';

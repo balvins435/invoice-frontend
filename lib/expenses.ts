@@ -1,4 +1,4 @@
-import api from './index';
+import api from './api';
 import { Expense, CreateExpenseDTO, ExpenseFilters, ExpenseSummary } from '@/types/expense';
 
 const BASE_URL = '/expenses';

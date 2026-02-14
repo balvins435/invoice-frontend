@@ -16,6 +16,7 @@ import {
   User,
   ChevronRight
 } from 'lucide-react';
+import { authService } from '@/lib/auth';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -34,13 +35,13 @@ export const Sidebar: React.FC = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
-    router.push('/auth/login');
+    router.push('/login');
   };
 
-  const user = {
-    name: 'Demo User',
-    email: 'demo@example.com',
-  };
+  const user = authService.getUser();
+  const userName =
+    `${user?.first_name ?? ''} ${user?.last_name ?? ''}`.trim() || 'User';
+  const userEmail = user?.email || 'No email';
 
   return (
     <>
@@ -94,8 +95,8 @@ export const Sidebar: React.FC = () => {
               <User className="h-6 w-6 text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-gray-900 truncate">{user.name}</p>
-              <p className="text-sm text-gray-500 truncate">{user.email}</p>
+              <p className="font-semibold text-gray-900 truncate">{userName}</p>
+              <p className="text-sm text-gray-500 truncate">{userEmail}</p>
             </div>
           </div>
         </div>

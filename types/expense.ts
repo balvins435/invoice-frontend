@@ -1,7 +1,3 @@
-import { Expense, CreateExpenseData } from './index';
-
-// frontend/types/expense.ts
-
 export type ExpenseCategory = 
   | 'office_supplies'
   | 'travel'
@@ -45,21 +41,28 @@ export interface Expense {
 }
 
 export interface CreateExpenseData {
-  business_id: number;
+  business_id?: number;
   title: string;
   category: ExpenseCategory;
   amount: number;
   expense_date: string;
   tax_deductible: boolean;
+  notes?: string;
+  receipt?: File;
 }
+
+export type CreateExpenseDTO = CreateExpenseData;
 
 export interface ExpenseFilters {
   category?: ExpenseCategory;
   date_from?: string;
   date_to?: string;
+  start_date?: string;
+  end_date?: string;
   tax_deductible?: boolean;
   min_amount?: number;
   max_amount?: number;
+  search?: string;
 }
 
 export interface ExpenseSummary {
