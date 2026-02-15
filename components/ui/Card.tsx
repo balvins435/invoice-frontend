@@ -15,19 +15,19 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
       <div
         ref={ref}
         className={cn(
-          'bg-white rounded-xl shadow-sm border border-gray-200',
+          'bg-white rounded-xl shadow-sm border border-gray-200 dark:bg-slate-900 dark:border-slate-700',
           className
         )}
         {...props}
       >
         {(title || subtitle || actions) && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700">
             <div>
               {title && (
-                <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">{title}</h3>
               )}
               {subtitle && (
-                <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
+                <p className="text-sm text-gray-500 mt-1 dark:text-slate-400">{subtitle}</p>
               )}
             </div>
             {actions && <div className="flex items-center space-x-2">{actions}</div>}
@@ -48,7 +48,7 @@ const CardHeader = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      'flex items-center justify-between px-6 py-4 border-b border-gray-200',
+      'flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700',
       className
     )}
     {...props}
@@ -63,7 +63,7 @@ const CardTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h3
     ref={ref}
-    className={cn('text-lg font-semibold text-gray-900', className)}
+    className={cn('text-lg font-semibold text-gray-900 dark:text-slate-100', className)}
     {...props}
   />
 ));
@@ -76,7 +76,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn('text-sm text-gray-500 mt-1', className)}
+    className={cn('text-sm text-gray-500 mt-1 dark:text-slate-400', className)}
     {...props}
   />
 ));

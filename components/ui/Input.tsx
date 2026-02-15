@@ -34,13 +34,13 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
             {label}
           </label>
         )}
         <div className="relative">
           {leftIcon && (
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500">
               {leftIcon}
             </div>
           )}
@@ -50,7 +50,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               'block w-full rounded-lg border border-gray-300 px-3 py-2.5',
               'focus:border-primary-500 focus:ring-primary-500 focus:outline-none',
               'transition-colors duration-200',
-              'text-gray-900 placeholder-gray-400',
+              'text-gray-900 placeholder-gray-400 dark:text-slate-100 dark:placeholder-slate-500 dark:bg-slate-900 dark:border-slate-700',
               error && 'border-danger-500 focus:border-danger-500 focus:ring-danger-500',
               leftIcon && 'pl-10',
               (rightIcon || showPasswordToggle) && 'pr-10',
@@ -63,7 +63,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300"
               tabIndex={-1}
             >
               {showPassword ? (
@@ -74,7 +74,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             </button>
           )}
           {rightIcon && !showPasswordToggle && (
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-500">
               {rightIcon}
             </div>
           )}
@@ -83,7 +83,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <p className="mt-1 text-sm text-danger-600">{error}</p>
         )}
         {helperText && !error && (
-          <p className="mt-1 text-sm text-gray-500">{helperText}</p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">{helperText}</p>
         )}
       </div>
     );

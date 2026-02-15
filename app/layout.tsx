@@ -17,8 +17,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} bg-white text-gray-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100`}>
         <Providers>
           <Toaster 
             position="top-right"
