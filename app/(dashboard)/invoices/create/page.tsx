@@ -24,7 +24,7 @@ export default function CreateInvoicePage() {
           {/* Header Actions */}
           <div className="flex items-center justify-between mb-6">
             <Link 
-              href="/dashboard/invoices"
+              href="/invoices"
               className="inline-flex items-center text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -32,7 +32,7 @@ export default function CreateInvoicePage() {
             </Link>
             
             <div className="flex items-center space-x-3">
-              <Link href="/dashboard/invoices">
+              <Link href="/invoices">
                 <Button variant="secondary">Cancel</Button>
               </Link>
               <Button 

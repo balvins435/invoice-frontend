@@ -186,7 +186,7 @@ export default function ExpensesPage() {
                 Export CSV
               </Button>
               
-              <Link href="/dashboard/expenses/create">
+              <Link href="/expenses/create">
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Expense
@@ -293,7 +293,7 @@ export default function ExpensesPage() {
               <p className="text-gray-500 mb-6">
                 {searchQuery ? 'Try changing your search query' : 'Get started by adding your first expense'}
               </p>
-              <Link href="/dashboard/expenses/create">
+              <Link href="/expenses/create">
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Expense
@@ -342,7 +342,7 @@ export default function ExpensesPage() {
                       </td>
                       <td className="table-cell">
                         <div className="flex items-center space-x-2">
-                          <Link href={`/dashboard/expenses/${expense.id}/edit`}>
+                          <Link href={`/expenses/${expense.id}/edit`}>
                             <button
                               className="p-1 text-gray-400 hover:text-gray-600"
                               title="Edit"

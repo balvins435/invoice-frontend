@@ -55,25 +55,25 @@ export default function DashboardPage() {
     {
       title: 'Create Invoice',
       icon: FileText,
-      href: '/dashboard/invoices/create',
+      href: '/invoices/create',
       color: 'blue',
     },
     {
       title: 'Add Expense',
       icon: CreditCard,
-      href: '/dashboard/expenses/create',
+      href: '/expenses/create',
       color: 'green',
     },
     {
       title: 'View Reports',
       icon: BarChart3,
-      href: '/dashboard/reports',
+      href: '/reports',
       color: 'purple',
     },
     {
       title: 'Manage Business',
       icon: Users,
-      href: '/dashboard/business',
+      href: '/business',
       color: 'orange',
     },
   ];
@@ -109,14 +109,14 @@ export default function DashboardPage() {
             </div>
             <div className="flex space-x-3">
               <Link 
-                href="/dashboard/invoices/create"
+                href="/invoices/create"
                 className="btn-primary flex items-center"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create Invoice
               </Link>
               <Link 
-                href="/dashboard/expenses/create"
+                href="/expenses/create"
                 className="btn-secondary flex items-center"
               >
                 <CreditCard className="h-4 w-4 mr-2" />
@@ -184,7 +184,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Recent Invoices</h3>
               <Link 
-                href="/dashboard/invoices"
+                href="/invoices"
                 className="text-sm text-blue-600 hover:text-blue-700 font-medium"
               >
                 View All
@@ -194,7 +194,7 @@ export default function DashboardPage() {
               <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-500">No recent invoices</p>
               <Link 
-                href="/dashboard/invoices/create"
+                href="/invoices/create"
                 className="btn-primary mt-4 inline-flex items-center"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -210,7 +210,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Recent Expenses</h3>
               <Link 
-                href="/dashboard/expenses"
+                href="/expenses"
                 className="text-sm text-blue-600 hover:text-blue-700 font-medium"
               >
                 View All
@@ -220,7 +220,7 @@ export default function DashboardPage() {
               <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-500">No recent expenses</p>
               <Link 
-                href="/dashboard/expenses/create"
+                href="/expenses/create"
                 className="btn-primary mt-4 inline-flex items-center"
               >
                 <Plus className="h-4 w-4 mr-2" />
