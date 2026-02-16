@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { AuthResponse } from '@/types';
+type TokenRefreshResponse = { access: string };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
@@ -46,12 +46,12 @@ api.interceptors.response.use(
         }
         
         // Attempt to refresh the token
-        const response = await axios.post<AuthResponse>(
-          `${API_URL}/users/token/refresh/`,
+        const response = await axios.post<TokenRefreshResponse>(
+          `${API_URL}/refresh/`,
           { refresh: refreshToken }
         );
         
-        const { access } = response.data.tokens;
+        const { access } = response.data;
         
         // Save new access token
         localStorage.setItem('access_token', access);
@@ -89,7 +89,7 @@ export const apiService = {
     logout: (p0: { refresh: string; }) => api.post('/logout/', p0),
     getCurrentUser: () => api.get('/me/'),
     refreshToken: (refresh: string) => 
-      api.post('/token/refresh/', { refresh }),
+      api.post('/refresh/', { refresh }),
     changePassword: (data: any) => 
       api.put('/me/change-password/', data),
     updateProfile: (data: any) => 

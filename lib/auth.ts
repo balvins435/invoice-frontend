@@ -93,6 +93,64 @@ class AuthService {
     }
   }
 
+  async register(email: string, password: string, first_name: string, last_name: string) {
+    try {
+      console.log('📤 Sending registration request...');
+
+      const response = await api.post('/register/', {
+        email,
+        password,
+        first_name,
+        last_name,
+      });
+
+      const { tokens, ...userData } = response.data || {};
+
+      if (!tokens?.access || !tokens?.refresh) {
+        return {
+          success: false,
+          error: 'Registration succeeded but no tokens were returned.',
+        };
+      }
+
+      // Save tokens
+      setAuthTokens(tokens);
+      this.token = tokens.access;
+
+      // Set default authorization header
+      api.defaults.headers.common['Authorization'] = `Bearer ${tokens.access}`;
+
+      // Save user data
+      this.saveUserToStorage(userData as User);
+
+      return {
+        success: true,
+        user: userData as User,
+        tokens,
+      };
+    } catch (error: any) {
+      console.error('❌ Registration failed:', error);
+
+      let errorMessage = 'Registration failed';
+
+      if (error.response) {
+        errorMessage = error.response.data?.detail ||
+                      error.response.data?.message ||
+                      error.response.data?.error ||
+                      `Server error: ${error.response.status}`;
+      } else if (error.request) {
+        errorMessage = 'Cannot connect to server. Please check if backend is running.';
+      } else {
+        errorMessage = error.message;
+      }
+
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  }
+
   async checkAuth(): Promise<boolean> {
     const token = localStorage.getItem('access_token');
     
@@ -146,7 +204,7 @@ class AuthService {
     }
     
     try {
-      const response = await api.post('/token/refresh/', {
+      const response = await api.post('/refresh/', {
         refresh: refreshToken,
       });
       
