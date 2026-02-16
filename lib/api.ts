@@ -112,10 +112,10 @@ export const apiService = {
     create: (data: any) => api.post('/invoice/', data),
     update: (id: number, data: any) => api.patch(`/invoice/${id}/`, data),
     delete: (id: number) => api.delete(`/invoice/${id}/`),
-    markAsPaid: (id: number) => api.post(`/invoice/${id}/mark-paid/`),
-    sendEmail: (id: number) => api.post(`/invoice/${id}/send-email/`),
+    markAsPaid: (id: number) => api.post(`/invoice/${id}/mark_paid/`),
+    sendEmail: (id: number) => api.post(`/invoice/${id}/send_email/`),
     downloadPDF: (id: number) => 
-      api.get(`/invoice/${id}/download-pdf/`, { responseType: 'blob' }),
+      api.get(`/invoice/${id}/pdf/`, { responseType: 'blob' }),
   },
 
   // Expense endpoints

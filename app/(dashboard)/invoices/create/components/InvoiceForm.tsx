@@ -154,16 +154,24 @@ export const InvoiceForm: React.FC = () => {
       console.log('Submitting invoice:', invoiceData);
 
       const response = await apiService.invoices.create(invoiceData);
-      
+
+      if (status === 'sent') {
+        try {
+          await apiService.invoices.sendEmail(response.data.id);
+        } catch (sendError) {
+          toast.error('Invoice created, but email failed to send.');
+        }
+      }
+
       toast.success(
         status === 'draft' 
           ? 'Invoice saved as draft!' 
           : 'Invoice created and sent!'
       );
       
-      // Redirect to invoice view page
+      // Redirect to invoices list
       setTimeout(() => {
-        router.push(`/dashboard/invoices/${response.data.id}`);
+        router.push('/invoices');
       }, 1000);
       
     } catch (error: any) {

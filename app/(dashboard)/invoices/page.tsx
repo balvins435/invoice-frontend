@@ -320,23 +320,21 @@ export default function InvoicesPage() {
                             <Mail className="h-4 w-4" />
                           </button>
                           
-                          <Link href={`/invoices/${invoice.id}`}>
-                            <button
-                              className="p-1 text-gray-400 hover:text-gray-600"
-                              title="View"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-                          </Link>
-                          
-                          <Link href={`/invoices/${invoice.id}/edit`}>
-                            <button
-                              className="p-1 text-gray-400 hover:text-gray-600"
-                              title="Edit"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                          </Link>
+                          <button
+                            onClick={() => toast.error('Invoice view page is not implemented yet.')}
+                            className="p-1 text-gray-400 hover:text-gray-600"
+                            title="View"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+
+                          <button
+                            onClick={() => toast.error('Invoice edit page is not implemented yet.')}
+                            className="p-1 text-gray-400 hover:text-gray-600"
+                            title="Edit"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
                           
                           {invoice.status !== 'paid' && (
                             <button
