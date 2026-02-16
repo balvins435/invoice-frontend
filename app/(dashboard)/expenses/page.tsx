@@ -44,7 +44,13 @@ export default function ExpensesPage() {
     try {
       setIsLoading(true);
       const response = await apiService.expenses.getAll(filters);
-      setExpenses(response.data.results || response.data);
+      const payload = response.data;
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.results)
+          ? payload.results
+          : [];
+      setExpenses(list);
     } catch (error) {
       toast.error('Failed to load expenses');
     } finally {

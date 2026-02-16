@@ -107,15 +107,15 @@ export const apiService = {
 
   // Invoice endpoints
   invoices: {
-    getAll: (params?: any) => api.get('/invoices/', { params }),
-    getById: (id: number) => api.get(`/invoices/${id}/`),
-    create: (data: any) => api.post('/invoices/', data),
-    update: (id: number, data: any) => api.patch(`/invoices/${id}/`, data),
-    delete: (id: number) => api.delete(`/invoices/${id}/`),
-    markAsPaid: (id: number) => api.post(`/invoices/${id}/mark-paid/`),
-    sendEmail: (id: number) => api.post(`/invoices/${id}/send-email/`),
+    getAll: (params?: any) => api.get('/invoice/', { params }),
+    getById: (id: number) => api.get(`/invoice/${id}/`),
+    create: (data: any) => api.post('/invoice/', data),
+    update: (id: number, data: any) => api.patch(`/invoice/${id}/`, data),
+    delete: (id: number) => api.delete(`/invoice/${id}/`),
+    markAsPaid: (id: number) => api.post(`/invoice/${id}/mark-paid/`),
+    sendEmail: (id: number) => api.post(`/invoice/${id}/send-email/`),
     downloadPDF: (id: number) => 
-      api.get(`/invoices/${id}/download-pdf/`, { responseType: 'blob' }),
+      api.get(`/invoice/${id}/download-pdf/`, { responseType: 'blob' }),
   },
 
   // Expense endpoints
