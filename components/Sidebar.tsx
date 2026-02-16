@@ -43,8 +43,7 @@ export const Sidebar: React.FC = () => {
   };
 
   const user = authService.getUser();
-  const userName =
-    `${user?.first_name ?? ''} ${user?.last_name ?? ''}`.trim() || 'User';
+  const userName = user?.full_name?.trim() || 'User';
   const userEmail = user?.email || 'No email';
 
   return (

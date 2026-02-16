@@ -54,7 +54,7 @@ export const Navbar: React.FC<NavbarProps> = ({ title, subtitle }) => {
                 </div>
                 <div className="text-left hidden md:block">
                   <p className="text-sm font-medium text-gray-900 dark:text-slate-100">
-                    {user?.first_name} {user?.last_name}
+                  {user?.full_name}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-slate-400">{user?.email}</p>
                 </div>
@@ -66,7 +66,7 @@ export const Navbar: React.FC<NavbarProps> = ({ title, subtitle }) => {
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 dark:bg-slate-800 dark:border-slate-700">
                   <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700">
                     <p className="text-sm font-medium text-gray-900 dark:text-slate-100">
-                      {user?.first_name} {user?.last_name}
+                      {user?.full_name}
                     </p>
                     <p className="text-xs text-gray-500 truncate dark:text-slate-400">{user?.email}</p>
                   </div>
