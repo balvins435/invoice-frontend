@@ -157,7 +157,7 @@ export const Sidebar: React.FC = () => {
               </span>
             </button>
             <Link
-              href="/dashboard/settings"
+              href="/settings"
               className="flex items-center px-4 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors dark:text-slate-300 dark:hover:bg-slate-800"
               onClick={() => setIsOpen(false)}
             >
