@@ -12,15 +12,20 @@ import {
   BarChart3
 } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { apiService } from '@/lib/api';
 import { Expense, Invoice } from '@/types';
 import { formatCurrency, formatDate, getStatusColor, getStatusText } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { Spinner } from '@/components/ui/Spinner';
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [pendingRoute, setPendingRoute] = useState<string | null>(null);
+  const router = useRouter();
+  const pathname = usePathname();
 
   const parseList = <T,>(payload: unknown): T[] => {
     if (Array.isArray(payload)) return payload;
@@ -33,6 +38,17 @@ export default function DashboardPage() {
       return (payload as { results: T[] }).results;
     }
     return [];
+  };
+
+  const toNumber = (value: unknown): number => {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : 0;
+    }
+    if (typeof value === 'string') {
+      const parsed = Number.parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
   };
 
   useEffect(() => {
@@ -69,12 +85,15 @@ export default function DashboardPage() {
   }, []);
 
   const totalIncome = useMemo(
-    () => invoices.filter((invoice) => invoice.status === 'paid').reduce((sum, invoice) => sum + invoice.total_amount, 0),
+    () =>
+      invoices
+        .filter((invoice) => invoice.status === 'paid')
+        .reduce((sum, invoice) => sum + toNumber(invoice.total_amount), 0),
     [invoices]
   );
 
   const totalExpenses = useMemo(
-    () => expenses.reduce((sum, expense) => sum + expense.amount, 0),
+    () => expenses.reduce((sum, expense) => sum + toNumber(expense.amount), 0),
     [expenses]
   );
 
@@ -105,7 +124,7 @@ export default function DashboardPage() {
   );
 
   const formatKsh = (amount: number) =>
-    `Ksh ${amount.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    `Ksh ${toNumber(amount).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const stats = [
     {
@@ -162,6 +181,17 @@ export default function DashboardPage() {
     },
   ];
 
+  useEffect(() => {
+    [
+      '/invoices',
+      '/expenses',
+      '/invoices/create',
+      '/expenses/create',
+      '/reports',
+      '/business',
+    ].forEach((href) => router.prefetch(href));
+  }, [router]);
+
   if (loading) {
     return (
       <div className="p-6">
@@ -194,16 +224,26 @@ export default function DashboardPage() {
             <div className="flex space-x-3">
               <Link 
                 href="/invoices/create"
+                onClick={() => setPendingRoute('/invoices/create')}
                 className="btn-primary flex items-center"
               >
-                <Plus className="h-4 w-4 mr-2" />
+                {pendingRoute === '/invoices/create' && pathname !== '/invoices/create' ? (
+                  <Spinner size="sm" className="mr-2" />
+                ) : (
+                  <Plus className="h-4 w-4 mr-2" />
+                )}
                 Create Invoice
               </Link>
               <Link 
                 href="/expenses/create"
+                onClick={() => setPendingRoute('/expenses/create')}
                 className="btn-secondary flex items-center"
               >
-                <CreditCard className="h-4 w-4 mr-2" />
+                {pendingRoute === '/expenses/create' && pathname !== '/expenses/create' ? (
+                  <Spinner size="sm" className="mr-2" />
+                ) : (
+                  <CreditCard className="h-4 w-4 mr-2" />
+                )}
                 Add Expense
               </Link>
             </div>
@@ -243,13 +283,19 @@ export default function DashboardPage() {
                 <Link
                   key={index}
                   href={action.href}
+                  onClick={() => setPendingRoute(action.href)}
                   className={`
                     ${colorClasses[action.color as keyof typeof colorClasses]}
                     border rounded-xl p-6 text-center hover:shadow-md transition-shadow
+                    ${pendingRoute === action.href && pathname !== action.href ? 'opacity-80 pointer-events-none' : ''}
                   `}
                 >
                   <div className="flex flex-col items-center">
-                    <Icon className="h-8 w-8 mb-3" />
+                    {pendingRoute === action.href && pathname !== action.href ? (
+                      <Spinner size="sm" className="mb-3" />
+                    ) : (
+                      <Icon className="h-8 w-8 mb-3" />
+                    )}
                     <span className="font-medium">{action.title}</span>
                   </div>
                 </Link>
@@ -268,9 +314,17 @@ export default function DashboardPage() {
               <h3 className="text-lg font-semibold text-gray-900">Recent Invoices</h3>
               <Link 
                 href="/invoices"
+                onClick={() => setPendingRoute('/invoices')}
                 className="text-sm text-blue-600 hover:text-blue-700 font-medium"
               >
-                View All
+                {pendingRoute === '/invoices' && pathname !== '/invoices' ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Spinner size="sm" />
+                    Loading...
+                  </span>
+                ) : (
+                  'View All'
+                )}
               </Link>
             </div>
             {recentInvoices.length > 0 ? (
@@ -296,9 +350,14 @@ export default function DashboardPage() {
                 <p className="text-gray-500">No recent invoices</p>
                 <Link 
                   href="/invoices/create"
+                  onClick={() => setPendingRoute('/invoices/create')}
                   className="btn-primary mt-4 inline-flex items-center"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
+                  {pendingRoute === '/invoices/create' && pathname !== '/invoices/create' ? (
+                    <Spinner size="sm" className="mr-2" />
+                  ) : (
+                    <Plus className="h-4 w-4 mr-2" />
+                  )}
                   Create First Invoice
                 </Link>
               </div>
@@ -313,9 +372,17 @@ export default function DashboardPage() {
               <h3 className="text-lg font-semibold text-gray-900">Recent Expenses</h3>
               <Link 
                 href="/expenses"
+                onClick={() => setPendingRoute('/expenses')}
                 className="text-sm text-blue-600 hover:text-blue-700 font-medium"
               >
-                View All
+                {pendingRoute === '/expenses' && pathname !== '/expenses' ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Spinner size="sm" />
+                    Loading...
+                  </span>
+                ) : (
+                  'View All'
+                )}
               </Link>
             </div>
             {recentExpenses.length > 0 ? (
@@ -336,9 +403,14 @@ export default function DashboardPage() {
                 <p className="text-gray-500">No recent expenses</p>
                 <Link 
                   href="/expenses/create"
+                  onClick={() => setPendingRoute('/expenses/create')}
                   className="btn-primary mt-4 inline-flex items-center"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
+                  {pendingRoute === '/expenses/create' && pathname !== '/expenses/create' ? (
+                    <Spinner size="sm" className="mr-2" />
+                  ) : (
+                    <Plus className="h-4 w-4 mr-2" />
+                  )}
                   Add First Expense
                 </Link>
               </div>

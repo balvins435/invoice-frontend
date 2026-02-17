@@ -13,6 +13,8 @@ import { Invoice, InvoiceFilters } from '@/types';
 import { formatCurrency, formatDate, getStatusColor, getStatusText } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { Spinner } from '@/components/ui/Spinner';
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -22,10 +24,17 @@ export default function InvoicesPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [pendingRoute, setPendingRoute] = useState<string | null>(null);
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     fetchInvoices();
   }, [filters]);
+
+  useEffect(() => {
+    router.prefetch('/invoices/create');
+  }, [router]);
 
   const fetchInvoices = async () => {
     try {
@@ -100,6 +109,7 @@ export default function InvoicesPage() {
     draft: filteredInvoices.filter(i => i.status === 'draft').length,
     totalAmount: filteredInvoices.reduce((sum, i) => sum + i.total_amount, 0),
   };
+  const isCreatePending = pendingRoute === '/invoices/create' && pathname !== '/invoices/create';
 
   return (
     <>
@@ -164,9 +174,13 @@ export default function InvoicesPage() {
                 Filters
               </Button>
               
-              <Link href="/invoices/create">
+              <Link
+                href="/invoices/create"
+                onClick={() => setPendingRoute('/invoices/create')}
+                className={isCreatePending ? 'pointer-events-none opacity-80' : ''}
+              >
                 <Button>
-                  <Plus className="h-4 w-4 mr-2" />
+                  {isCreatePending ? <Spinner size="sm" className="mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
                   New Invoice
                 </Button>
               </Link>
@@ -253,9 +267,13 @@ export default function InvoicesPage() {
               <p className="text-gray-500 mb-6">
                 {searchQuery ? 'Try changing your search query' : 'Get started by creating your first invoice'}
               </p>
-              <Link href="/invoices/create">
+              <Link
+                href="/invoices/create"
+                onClick={() => setPendingRoute('/invoices/create')}
+                className={isCreatePending ? 'pointer-events-none opacity-80' : ''}
+              >
                 <Button>
-                  <Plus className="h-4 w-4 mr-2" />
+                  {isCreatePending ? <Spinner size="sm" className="mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
                   Create Invoice
                 </Button>
               </Link>

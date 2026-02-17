@@ -25,6 +25,8 @@ import { Expense, ExpenseFilters, ExpenseCategory, EXPENSE_CATEGORIES } from '@/
 import { formatCurrency, formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { Spinner } from '@/components/ui/Spinner';
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -35,10 +37,17 @@ export default function ExpensesPage() {
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showCategoryChart, setShowCategoryChart] = useState(false);
+  const [pendingRoute, setPendingRoute] = useState<string | null>(null);
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     fetchExpenses();
   }, [filters]);
+
+  useEffect(() => {
+    router.prefetch('/expenses/create');
+  }, [router]);
 
   const fetchExpenses = async () => {
     try {
@@ -92,6 +101,7 @@ export default function ExpensesPage() {
   const topCategories = Object.entries(expenseSummary.byCategory)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5);
+  const isCreatePending = pendingRoute === '/expenses/create' && pathname !== '/expenses/create';
 
   return (
     <>
@@ -186,9 +196,13 @@ export default function ExpensesPage() {
                 Export CSV
               </Button>
               
-              <Link href="/expenses/create">
+              <Link
+                href="/expenses/create"
+                onClick={() => setPendingRoute('/expenses/create')}
+                className={isCreatePending ? 'pointer-events-none opacity-80' : ''}
+              >
                 <Button>
-                  <Plus className="h-4 w-4 mr-2" />
+                  {isCreatePending ? <Spinner size="sm" className="mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
                   Add Expense
                 </Button>
               </Link>
@@ -293,9 +307,13 @@ export default function ExpensesPage() {
               <p className="text-gray-500 mb-6">
                 {searchQuery ? 'Try changing your search query' : 'Get started by adding your first expense'}
               </p>
-              <Link href="/expenses/create">
+              <Link
+                href="/expenses/create"
+                onClick={() => setPendingRoute('/expenses/create')}
+                className={isCreatePending ? 'pointer-events-none opacity-80' : ''}
+              >
                 <Button>
-                  <Plus className="h-4 w-4 mr-2" />
+                  {isCreatePending ? <Spinner size="sm" className="mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
                   Add Expense
                 </Button>
               </Link>
