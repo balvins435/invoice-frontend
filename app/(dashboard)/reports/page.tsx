@@ -32,6 +32,14 @@ export default function ReportsPage() {
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
   const [startDate, endDate] = dateRange;
+  const toNumber = (value: unknown): number => {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+    if (typeof value === 'string') {
+      const parsed = Number.parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+  };
 
   useEffect(() => { fetchReports(); }, [selectedYear, selectedMonth]);
 
@@ -47,26 +55,34 @@ export default function ReportsPage() {
       setTaxSummary(taxResponse.data);
       const currentReport = Array.isArray(monthlyResponse.data) ? monthlyResponse.data[0] : monthlyResponse.data;
       if (currentReport) {
+        const totalIncome = toNumber(currentReport.total_income);
+        const totalExpenses = toNumber(currentReport.total_expenses);
+        const deductibleExpenses = toNumber(currentReport.deductible_expenses);
+        const nonDeductibleExpenses = Math.max(totalExpenses - deductibleExpenses, 0);
+        const netProfit = toNumber(currentReport.net_profit);
         setProfitLoss({
           revenue: {
-            total: currentReport.total_income,
-            breakdown: [{ source: 'Invoice Payments', amount: currentReport.total_income, percentage: 100 }],
+            total: totalIncome,
+            breakdown: [{ source: 'Invoice Payments', amount: totalIncome, percentage: 100 }],
           },
           expenses: {
-            total: currentReport.total_expenses,
-            breakdown: Object.entries(currentReport)
-              .filter(([key]) => key.includes('expense'))
-              .map(([key, value]) => ({
-                category: key.replace('_', ' ').toUpperCase(),
-                amount: value as number,
-                percentage: currentReport.total_expenses > 0
-                  ? ((value as number) / currentReport.total_expenses) * 100
-                  : 0,
-              })),
+            total: totalExpenses,
+            breakdown: [
+              {
+                category: 'Deductible Expenses',
+                amount: deductibleExpenses,
+                percentage: totalExpenses > 0 ? (deductibleExpenses / totalExpenses) * 100 : 0,
+              },
+              {
+                category: 'Other Expenses',
+                amount: nonDeductibleExpenses,
+                percentage: totalExpenses > 0 ? (nonDeductibleExpenses / totalExpenses) * 100 : 0,
+              },
+            ].filter((item) => item.amount > 0),
           },
-          net_profit: currentReport.net_profit,
-          profit_margin: currentReport.total_income > 0
-            ? (currentReport.net_profit / currentReport.total_income) * 100
+          net_profit: netProfit,
+          profit_margin: totalIncome > 0
+            ? (netProfit / totalIncome) * 100
             : 0,
         });
       }
@@ -96,10 +112,12 @@ export default function ReportsPage() {
 
   const generatePDF = () => toast.success('Generating PDF report…');
 
-  const currentReport = monthlyReports[0] || null;
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
   const months = ['January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'];
+  const currentReport = selectedMonth
+    ? monthlyReports[0] || null
+    : (monthlyReports.find((r) => r.month === months[new Date().getMonth()]) || monthlyReports[0] || null);
 
   const profitMargin = currentReport && currentReport.total_income > 0
     ? ((currentReport.net_profit / currentReport.total_income) * 100).toFixed(1)
