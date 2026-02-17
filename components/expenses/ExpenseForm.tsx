@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/utils';
 import { EXPENSE_CATEGORIES } from '@/types/expense';
 import { useCreateExpense, useUpdateExpense } from '@/lib/hooks/useExpenses';
+import { Business } from '@/types';
 
 // Form validation schema
 const expenseSchema = z.object({
@@ -38,6 +39,9 @@ interface ExpenseFormProps {
   expenseId?: number;
   onSuccess?: () => void;
   onCancel?: () => void;
+  businesses?: Business[];
+  selectedBusinessId?: number | null;
+  onBusinessChange?: (businessId: number | null) => void;
 }
 
 export const ExpenseForm: React.FC<ExpenseFormProps> = ({
@@ -45,10 +49,14 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
   expenseId,
   onSuccess,
   onCancel,
+  businesses = [],
+  selectedBusinessId = null,
+  onBusinessChange,
 }) => {
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [date, setDate] = useState<Date>(initialData?.expense_date || new Date());
+  const [businessError, setBusinessError] = useState<string | null>(null);
 
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
@@ -90,8 +98,14 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
   const onSubmit = async (data: ExpenseFormData) => {
     try {
+      if (!expenseId && !selectedBusinessId) {
+        setBusinessError('Please select a business');
+        return;
+      }
+
       const formattedData = {
         ...data,
+        business_id: selectedBusinessId || undefined,
         category: data.category as keyof typeof EXPENSE_CATEGORIES,
         expense_date: format(data.expense_date, 'yyyy-MM-dd'),
         amount: Number(data.amount),
@@ -153,6 +167,38 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
             <CardTitle className="text-lg">Expense Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {!expenseId && (
+              <div className="space-y-2">
+                <label htmlFor="business_id" className="text-sm font-medium">
+                  Business *
+                </label>
+                <select
+                  id="business_id"
+                  value={selectedBusinessId ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value ? Number(e.target.value) : null;
+                    onBusinessChange?.(value);
+                    setBusinessError(null);
+                  }}
+                  className={cn(
+                    'flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm',
+                    'focus:border-primary-500 focus:outline-none',
+                    businessError && 'border-red-500'
+                  )}
+                >
+                  <option value="">Select business</option>
+                  {businesses.map((business) => (
+                    <option key={business.id} value={business.id}>
+                      {business.business_name}
+                    </option>
+                  ))}
+                </select>
+                {businessError && (
+                  <p className="text-sm text-red-500">{businessError}</p>
+                )}
+              </div>
+            )}
+
             {/* Title */}
             <div className="space-y-2">
               <label htmlFor="title" className="text-sm font-medium">

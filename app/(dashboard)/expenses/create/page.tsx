@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Receipt, TrendingDown } from 'lucide-react';
@@ -14,10 +14,28 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/Card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
+import { apiService } from '@/lib/api';
+import { Business } from '@/types';
+import toast from 'react-hot-toast';
 
 export default function CreateExpensePage() {
   const router = useRouter();
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [selectedBusinessId, setSelectedBusinessId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchBusinesses = async () => {
+      try {
+        const response = await apiService.business.getAll();
+        const list = response.data.results || response.data;
+        setBusinesses(list);
+      } catch {
+        toast.error('Failed to load businesses');
+      }
+    };
+
+    fetchBusinesses();
+  }, []);
 
   const handleSuccess = () => {
     router.push('/expenses');
@@ -60,107 +78,55 @@ export default function CreateExpensePage() {
           <ExpenseForm
             onSuccess={handleSuccess}
             onCancel={handleCancel}
+            businesses={businesses}
+            selectedBusinessId={selectedBusinessId}
+            onBusinessChange={setSelectedBusinessId}
           />
         </div>
 
         {/* Sidebar Column */}
         <div className="space-y-6 lg:col-span-1">
-          {/* Quick Stats */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">This Month</CardTitle>
-              <CardDescription>Your expense summary</CardDescription>
+              <CardTitle className="text-lg">Expense Checklist</CardTitle>
+              <CardDescription>Before you save this expense</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="rounded-full bg-red-100 p-2 dark:bg-red-900">
-                    <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-300" />
-                  </div>
-                  <span className="text-sm text-muted-foreground">
-                    Total Expenses
-                  </span>
-                </div>
-                <span className="font-semibold">KES 45,230</span>
-              </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="rounded-full bg-green-100 p-2 dark:bg-green-900">
                     <Receipt className="h-4 w-4 text-green-600 dark:text-green-300" />
                   </div>
-                  <span className="text-sm text-muted-foreground">
-                    Tax Deductible
-                  </span>
+                  <span className="text-sm text-muted-foreground">Correct category selected</span>
                 </div>
-                <span className="font-semibold text-green-600">KES 38,450</span>
+                <span className="font-semibold text-green-600">Required</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="rounded-full bg-blue-100 p-2 dark:bg-blue-900">
+                    <TrendingDown className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+                  </div>
+                  <span className="text-sm text-muted-foreground">Amount and date filled in</span>
+                </div>
+                <span className="font-semibold text-blue-600">Required</span>
               </div>
               <div className="mt-2 rounded-lg bg-muted p-3">
                 <p className="text-xs text-muted-foreground">
-                  You've recorded 12 expenses this month
+                  Optional but recommended: attach a receipt to keep clean records for reporting and audits.
                 </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* Tax Tips */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">💡 Tax Tips</CardTitle>
+              <CardTitle className="text-lg">Tax Tips</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Alert>
-                <AlertTitle>Keep Digital Records</AlertTitle>
-                <AlertDescription className="text-xs">
-                  Scan and upload receipts immediately to avoid losing them. 
-                  Digital copies are accepted by KRA.
-                </AlertDescription>
-              </Alert>
-              <Alert>
-                <AlertTitle>Common Deductions</AlertTitle>
-                <AlertDescription className="text-xs">
-                  Don't forget: internet, phone, transport, and office supplies 
-                  are all tax deductible.
-                </AlertDescription>
-              </Alert>
-              <Alert>
-                <AlertTitle>Deadline Reminder</AlertTitle>
-                <AlertDescription className="text-xs">
-                  Record expenses within 30 days for accurate monthly reporting.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-
-          {/* Quick Categories */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Quick Add</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-2">
-                {commonExpenses.map((expense) => (
-                  <Button
-                    key={expense.id}
-                    variant="outline"
-                    className="h-auto flex-col py-3 text-xs"
-                    onClick={() => {
-                      // Pre-fill form with common expense
-                      const titleInput = document.getElementById('title') as HTMLInputElement | null;
-                      if (titleInput) {
-                        titleInput.value = expense.title;
-                        // Trigger change event
-                        const event = new Event('input', { bubbles: true });
-                        titleInput.dispatchEvent(event);
-                      }
-                    }}
-                  >
-                    <span className="text-lg">{expense.icon}</span>
-                    <span className="mt-1">{expense.title}</span>
-                    <span className="mt-0.5 font-mono text-[10px] text-muted-foreground">
-                      ~{expense.amount}
-                    </span>
-                  </Button>
-                ))}
+              <div className="space-y-3 rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground">
+                <p>Keep digital receipts. They are easier to track and audit.</p>
+                <p>Mark tax-deductible expenses correctly to simplify reporting.</p>
+                <p>Record expenses close to the transaction date for accuracy.</p>
               </div>
             </CardContent>
           </Card>
@@ -169,13 +135,3 @@ export default function CreateExpensePage() {
     </div>
   );
 }
-
-// Common expenses for quick add
-const commonExpenses = [
-  { id: 1, title: 'Internet', icon: '📶', amount: 'KES 3,500' },
-  { id: 2, title: 'Airtime', icon: '📱', amount: 'KES 1,000' },
-  { id: 3, title: 'Fuel', icon: '⛽', amount: 'KES 5,000' },
-  { id: 4, title: 'Lunch', icon: '🍱', amount: 'KES 500' },
-  { id: 5, title: 'Office Rent', icon: '🏢', amount: 'KES 25,000' },
-  { id: 6, title: 'Cleaning', icon: '🧹', amount: 'KES 2,000' },
-];

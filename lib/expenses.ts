@@ -29,6 +29,9 @@ export const expenseApi = {
   createExpense: async (data: CreateExpenseDTO): Promise<Expense> => {
     const formData = new FormData();
     
+    if (data.business_id !== undefined) {
+      formData.append('business_id', String(data.business_id));
+    }
     formData.append('title', data.title);
     formData.append('category', data.category);
     formData.append('amount', String(data.amount));
