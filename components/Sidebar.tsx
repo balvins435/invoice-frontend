@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { authService } from '@/lib/auth';
 import { useTheme } from '@/lib/theme';
+import { Spinner } from '@/components/ui/Spinner';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -31,9 +32,14 @@ const navigation = [
 
 export const Sidebar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [pendingRoute, setPendingRoute] = useState<string | null>(null);
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+
+  useEffect(() => {
+    navigation.forEach((item) => router.prefetch(item.href));
+  }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem('access_token');
@@ -110,12 +116,16 @@ export const Sidebar: React.FC = () => {
             {navigation.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
+              const showPendingSpinner = pendingRoute === item.href && pathname !== item.href;
               
               return (
                 <li key={item.name}>
                   <Link
                     href={item.href}
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => {
+                      setPendingRoute(item.href);
+                      setIsOpen(false);
+                    }}
                     className={`
                       flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium
                       transition-all duration-200
@@ -129,7 +139,11 @@ export const Sidebar: React.FC = () => {
                       <Icon className="mr-3 h-5 w-5" />
                       {item.name}
                     </div>
-                    {isActive && <ChevronRight className="h-4 w-4" />}
+                    {showPendingSpinner ? (
+                      <Spinner size="sm" />
+                    ) : (
+                      isActive && <ChevronRight className="h-4 w-4" />
+                    )}
                   </Link>
                 </li>
               );

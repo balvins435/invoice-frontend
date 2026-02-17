@@ -41,17 +41,17 @@ export default function ReportsPage() {
     try {
       setIsLoading(true);
       
-      // Fetch monthly report
       const params = {
         year: selectedYear,
         ...(selectedMonth && { month: selectedMonth }),
       };
-      
-      const monthlyResponse = await apiService.reports.getMonthlyReport(params);
-      setMonthlyReports(Array.isArray(monthlyResponse.data) ? monthlyResponse.data : [monthlyResponse.data]);
 
-      // Fetch tax summary
-      const taxResponse = await apiService.reports.getTaxSummary(params);
+      const [monthlyResponse, taxResponse] = await Promise.all([
+        apiService.reports.getMonthlyReport(params),
+        apiService.reports.getTaxSummary(params),
+      ]);
+
+      setMonthlyReports(Array.isArray(monthlyResponse.data) ? monthlyResponse.data : [monthlyResponse.data]);
       setTaxSummary(taxResponse.data);
 
       // Calculate profit/loss from monthly data
@@ -72,11 +72,15 @@ export default function ReportsPage() {
             breakdown: Object.entries(currentReport).filter(([key]) => key.includes('expense')).map(([key, value]) => ({
               category: key.replace('_', ' ').toUpperCase(),
               amount: value as number,
-              percentage: ((value as number) / currentReport.total_expenses) * 100
+              percentage: currentReport.total_expenses > 0
+                ? ((value as number) / currentReport.total_expenses) * 100
+                : 0
             }))
           },
           net_profit: currentReport.net_profit,
-          profit_margin: (currentReport.net_profit / currentReport.total_income) * 100
+          profit_margin: currentReport.total_income > 0
+            ? (currentReport.net_profit / currentReport.total_income) * 100
+            : 0
         });
       }
 
