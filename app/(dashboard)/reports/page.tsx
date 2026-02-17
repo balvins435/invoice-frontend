@@ -117,7 +117,18 @@ export default function ReportsPage() {
     'July', 'August', 'September', 'October', 'November', 'December'];
   const currentReport = selectedMonth
     ? monthlyReports[0] || null
-    : (monthlyReports.find((r) => r.month === months[new Date().getMonth()]) || monthlyReports[0] || null);
+    : (monthlyReports.length > 0
+      ? {
+          month: `${selectedYear} Total`,
+          total_income: monthlyReports.reduce((sum, report) => sum + toNumber(report.total_income), 0),
+          total_expenses: monthlyReports.reduce((sum, report) => sum + toNumber(report.total_expenses), 0),
+          tax_owed: monthlyReports.reduce((sum, report) => sum + toNumber(report.tax_owed), 0),
+          deductible_expenses: monthlyReports.reduce((sum, report) => sum + toNumber(report.deductible_expenses), 0),
+          net_profit: monthlyReports.reduce((sum, report) => sum + toNumber(report.net_profit), 0),
+          invoice_count: monthlyReports.reduce((sum, report) => sum + toNumber(report.invoice_count), 0),
+          expense_count: monthlyReports.reduce((sum, report) => sum + toNumber(report.expense_count), 0),
+        }
+      : null);
 
   const profitMargin = currentReport && currentReport.total_income > 0
     ? ((currentReport.net_profit / currentReport.total_income) * 100).toFixed(1)
