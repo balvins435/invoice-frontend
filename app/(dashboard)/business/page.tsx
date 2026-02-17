@@ -11,7 +11,6 @@ import {
   Upload,
   Trash2,
   Plus,
-  Globe,
   Percent,
   Image as ImageIcon
 } from 'lucide-react';
@@ -23,7 +22,20 @@ import { Modal } from '@/components/ui/Modal';
 import { apiService } from '@/lib/api';
 import { Business } from '@/types';
 import toast from 'react-hot-toast';
-import Image from 'next/image';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_ORIGIN = API_URL.replace(/\/api\/?$/, '');
+
+const getLogoUrl = (logo?: string | null) => {
+  if (!logo) return null;
+  if (logo.startsWith('http://') || logo.startsWith('https://') || logo.startsWith('data:')) {
+    return logo;
+  }
+  if (logo.startsWith('/')) {
+    return `${API_ORIGIN}${logo}`;
+  }
+  return `${API_ORIGIN}/${logo}`;
+};
 
 export default function BusinessPage() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -51,16 +63,18 @@ export default function BusinessPage() {
     try {
       setIsLoading(true);
       const response = await apiService.business.getAll();
-      setBusinesses(response.data.results || response.data);
-      if (response.data.length > 0 && !selectedBusiness) {
-        setSelectedBusiness(response.data[0]);
+      const businessesData = response.data.results || response.data;
+      setBusinesses(businessesData);
+      if (businessesData.length > 0 && !selectedBusiness) {
+        setSelectedBusiness(businessesData[0]);
         setFormData({
-          business_name: response.data[0].business_name,
-          email: response.data[0].email,
-          phone: response.data[0].phone,
-          address: response.data[0].address,
-          tax_rate: response.data[0].tax_rate,
+          business_name: businessesData[0].business_name,
+          email: businessesData[0].email,
+          phone: businessesData[0].phone,
+          address: businessesData[0].address,
+          tax_rate: businessesData[0].tax_rate,
         });
+        setLogoPreview(getLogoUrl(businessesData[0].logo));
       }
     } catch (error) {
       toast.error('Failed to load businesses');
@@ -79,7 +93,7 @@ export default function BusinessPage() {
       address: business.address,
       tax_rate: business.tax_rate,
     });
-    setLogoPreview(business.logo);
+    setLogoPreview(getLogoUrl(business.logo));
     setLogoFile(null);
   };
 
@@ -226,7 +240,7 @@ export default function BusinessPage() {
                       {business.logo ? (
                         <div className="h-12 w-12 rounded-lg bg-white border border-gray-200 p-1">
                           <img
-                            src={business.logo}
+                            src={getLogoUrl(business.logo) || ''}
                             alt={business.business_name}
                             className="h-full w-full object-contain"
                           />

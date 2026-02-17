@@ -1,53 +1,137 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { StatCard } from '@/components/StatCard';
 import { 
-  DollarSign, 
+  Landmark, 
   CreditCard, 
   FileText, 
   Users,
-  TrendingUp,
-  TrendingDown,
   Plus,
   BarChart3
 } from 'lucide-react';
 import Link from 'next/link';
+import { apiService } from '@/lib/api';
+import { Expense, Invoice } from '@/types';
+import { formatCurrency, formatDate, getStatusColor, getStatusText } from '@/lib/utils';
+import toast from 'react-hot-toast';
 
 export default function DashboardPage() {
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+
+  const parseList = <T,>(payload: unknown): T[] => {
+    if (Array.isArray(payload)) return payload;
+    if (
+      payload &&
+      typeof payload === 'object' &&
+      'results' in payload &&
+      Array.isArray((payload as { results?: unknown }).results)
+    ) {
+      return (payload as { results: T[] }).results;
+    }
+    return [];
+  };
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+
+        const businessRes = await apiService.business.getAll();
+        const businesses = parseList<{ id: number }>(businessRes.data);
+        const businessIds = businesses.map((b) => b.id);
+
+        const [invoiceRes, expenseRes] = await Promise.all([
+          apiService.invoices.getAll(),
+          apiService.expenses.getAll(),
+        ]);
+
+        const fetchedInvoices = parseList<Invoice>(invoiceRes.data);
+        const fetchedExpenses = parseList<Expense>(expenseRes.data);
+
+        const filteredExpenses = businessIds.length
+          ? fetchedExpenses.filter((expense) => businessIds.includes(expense.business))
+          : fetchedExpenses;
+
+        setInvoices(fetchedInvoices);
+        setExpenses(filteredExpenses);
+      } catch {
+        toast.error('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  const totalIncome = useMemo(
+    () => invoices.filter((invoice) => invoice.status === 'paid').reduce((sum, invoice) => sum + invoice.total_amount, 0),
+    [invoices]
+  );
+
+  const totalExpenses = useMemo(
+    () => expenses.reduce((sum, expense) => sum + expense.amount, 0),
+    [expenses]
+  );
+
+  const pendingInvoices = useMemo(
+    () => invoices.filter((invoice) => invoice.status === 'sent').length,
+    [invoices]
+  );
+
+  const activeClients = useMemo(() => {
+    const keys = new Set(
+      invoices.map((invoice) => (invoice.client_email || invoice.client_name).toLowerCase())
+    );
+    return keys.size;
+  }, [invoices]);
+
+  const recentInvoices = useMemo(
+    () => [...invoices]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 5),
+    [invoices]
+  );
+
+  const recentExpenses = useMemo(
+    () => [...expenses]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 5),
+    [expenses]
+  );
+
+  const formatKsh = (amount: number) =>
+    `Ksh ${amount.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const stats = [
     {
       title: 'Total Income',
-      value: 0,
-      change: 0,
-      icon: DollarSign,
-      color: 'green' as const,
-      formatCurrency: true,
+      value: formatKsh(totalIncome),
+      icon: Landmark,
+      color: 'success' as const,
     },
     {
       title: 'Total Expenses',
-      value: 0,
-      change: 0,
+      value: totalExpenses,
       icon: CreditCard,
-      color: 'red' as const,
+      color: 'danger' as const,
       formatCurrency: true,
     },
     {
       title: 'Pending Invoices',
-      value: 0,
-      change: 0,
+      value: pendingInvoices,
       icon: FileText,
-      color: 'orange' as const,
+      color: 'warning' as const,
     },
     {
       title: 'Active Clients',
-      value: 0,
-      change: 0,
+      value: activeClients,
       icon: Users,
-      color: 'blue' as const,
+      color: 'primary' as const,
     },
   ];
 
@@ -101,10 +185,10 @@ export default function DashboardPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Welcome to InvoiceTracker! 🎉
+                Welcome to InvoiceTracker! 
               </h2>
               <p className="text-gray-600 mb-4 md:mb-0">
-                Start managing your invoices and expenses efficiently. Here's a quick overview of your business.
+                Start managing your invoices and expenses efficiently. Here&apos;s a quick overview of your business.
               </p>
             </div>
             <div className="flex space-x-3">
@@ -134,7 +218,6 @@ export default function DashboardPage() {
             key={index}
             title={stat.title}
             value={stat.value}
-            change={stat.change}
             icon={stat.icon}
             color={stat.color}
             formatCurrency={stat.formatCurrency}
@@ -190,17 +273,36 @@ export default function DashboardPage() {
                 View All
               </Link>
             </div>
-            <div className="text-center py-8">
-              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-500">No recent invoices</p>
-              <Link 
-                href="/invoices/create"
-                className="btn-primary mt-4 inline-flex items-center"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create First Invoice
-              </Link>
-            </div>
+            {recentInvoices.length > 0 ? (
+              <div className="space-y-3">
+                {recentInvoices.map((invoice) => (
+                  <div key={invoice.id} className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{invoice.invoice_number}</p>
+                      <p className="text-xs text-gray-500">{invoice.client_name} . {formatDate(invoice.issue_date)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(invoice.total_amount)}</p>
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs ${getStatusColor(invoice.status)}`}>
+                        {getStatusText(invoice.status)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500">No recent invoices</p>
+                <Link 
+                  href="/invoices/create"
+                  className="btn-primary mt-4 inline-flex items-center"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create First Invoice
+                </Link>
+              </div>
+            )}
           </div>
         </Card>
 
@@ -216,17 +318,31 @@ export default function DashboardPage() {
                 View All
               </Link>
             </div>
-            <div className="text-center py-8">
-              <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-500">No recent expenses</p>
-              <Link 
-                href="/expenses/create"
-                className="btn-primary mt-4 inline-flex items-center"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add First Expense
-              </Link>
-            </div>
+            {recentExpenses.length > 0 ? (
+              <div className="space-y-3">
+                {recentExpenses.map((expense) => (
+                  <div key={expense.id} className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{expense.title}</p>
+                      <p className="text-xs text-gray-500">{expense.category} . {formatDate(expense.expense_date)}</p>
+                    </div>
+                    <p className="text-sm font-semibold text-gray-900">{formatCurrency(expense.amount)}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500">No recent expenses</p>
+                <Link 
+                  href="/expenses/create"
+                  className="btn-primary mt-4 inline-flex items-center"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add First Expense
+                </Link>
+              </div>
+            )}
           </div>
         </Card>
       </div>
