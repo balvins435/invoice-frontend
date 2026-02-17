@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Building,
   Mail,
@@ -46,6 +46,8 @@ export default function BusinessPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const editLogoInputRef = useRef<HTMLInputElement | null>(null);
+  const createLogoInputRef = useRef<HTMLInputElement | null>(null);
 
   const [formData, setFormData] = useState({
     business_name: '',
@@ -107,6 +109,7 @@ export default function BusinessPage() {
       };
       reader.readAsDataURL(file);
     }
+    e.target.value = '';
   };
 
   const handleSave = async () => {
@@ -348,20 +351,21 @@ export default function BusinessPage() {
                       {isEditing && (
                         <div>
                           <input
+                            ref={editLogoInputRef}
                             type="file"
                             id="logo-upload"
                             className="hidden"
                             accept="image/*"
                             onChange={handleLogoUpload}
                           />
-                          <label htmlFor="logo-upload">
-                            <div className="cursor-pointer">
-                              <Button variant="secondary" type="button">
-                                <Upload className="h-4 w-4 mr-2" />
-                                Upload Logo
-                              </Button>
-                            </div>
-                          </label>
+                          <Button
+                            variant="secondary"
+                            type="button"
+                            onClick={() => editLogoInputRef.current?.click()}
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Upload Logo
+                          </Button>
                           <p className="text-xs text-gray-500 mt-2">
                             Recommended: 300x300px, PNG or JPG
                           </p>
@@ -568,20 +572,21 @@ export default function BusinessPage() {
               
               <div>
                 <input
+                  ref={createLogoInputRef}
                   type="file"
                   id="create-logo-upload"
                   className="hidden"
                   accept="image/*"
                   onChange={handleLogoUpload}
                 />
-                <label htmlFor="create-logo-upload">
-                  <div className="cursor-pointer">
-                    <Button variant="secondary" type="button">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Logo
-                    </Button>
-                  </div>
-                </label>
+                <Button
+                  variant="secondary"
+                  type="button"
+                  onClick={() => createLogoInputRef.current?.click()}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Logo
+                </Button>
                 <p className="text-xs text-gray-500 mt-2">
                   Recommended: 300x300px, PNG or JPG
                 </p>
