@@ -3,25 +3,25 @@
 import React, { useEffect, useState } from 'react';
 import {
   Download,
-  Calendar,
   TrendingUp,
   TrendingDown,
   DollarSign,
   Percent,
   PieChart,
   BarChart3,
-  Filter
+  ChevronDown,
+  FileText,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
 } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { StatCard } from '@/components/StatCard';
 import { apiService } from '@/lib/api';
 import { MonthlyReport, TaxSummary, ProfitLossStatement } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import DatePicker from 'react-datepicker';
-import "react-datepicker/dist/react-datepicker.css";
+import 'react-datepicker/dist/react-datepicker.css';
 
 export default function ReportsPage() {
   const [monthlyReports, setMonthlyReports] = useState<MonthlyReport[]>([]);
@@ -33,414 +33,578 @@ export default function ReportsPage() {
   const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
   const [startDate, endDate] = dateRange;
 
-  useEffect(() => {
-    fetchReports();
-  }, [selectedYear, selectedMonth]);
+  useEffect(() => { fetchReports(); }, [selectedYear, selectedMonth]);
 
   const fetchReports = async () => {
     try {
       setIsLoading(true);
-      
-      const params = {
-        year: selectedYear,
-        ...(selectedMonth && { month: selectedMonth }),
-      };
-
+      const params = { year: selectedYear, ...(selectedMonth && { month: selectedMonth }) };
       const [monthlyResponse, taxResponse] = await Promise.all([
         apiService.reports.getMonthlyReport(params),
         apiService.reports.getTaxSummary(params),
       ]);
-
       setMonthlyReports(Array.isArray(monthlyResponse.data) ? monthlyResponse.data : [monthlyResponse.data]);
       setTaxSummary(taxResponse.data);
-
-      // Calculate profit/loss from monthly data
-      const currentReport = Array.isArray(monthlyResponse.data) 
-        ? monthlyResponse.data[0] 
-        : monthlyResponse.data;
-      
+      const currentReport = Array.isArray(monthlyResponse.data) ? monthlyResponse.data[0] : monthlyResponse.data;
       if (currentReport) {
         setProfitLoss({
           revenue: {
             total: currentReport.total_income,
-            breakdown: [
-              { source: 'Invoice Payments', amount: currentReport.total_income, percentage: 100 }
-            ]
+            breakdown: [{ source: 'Invoice Payments', amount: currentReport.total_income, percentage: 100 }],
           },
           expenses: {
             total: currentReport.total_expenses,
-            breakdown: Object.entries(currentReport).filter(([key]) => key.includes('expense')).map(([key, value]) => ({
-              category: key.replace('_', ' ').toUpperCase(),
-              amount: value as number,
-              percentage: currentReport.total_expenses > 0
-                ? ((value as number) / currentReport.total_expenses) * 100
-                : 0
-            }))
+            breakdown: Object.entries(currentReport)
+              .filter(([key]) => key.includes('expense'))
+              .map(([key, value]) => ({
+                category: key.replace('_', ' ').toUpperCase(),
+                amount: value as number,
+                percentage: currentReport.total_expenses > 0
+                  ? ((value as number) / currentReport.total_expenses) * 100
+                  : 0,
+              })),
           },
           net_profit: currentReport.net_profit,
           profit_margin: currentReport.total_income > 0
             ? (currentReport.net_profit / currentReport.total_income) * 100
-            : 0
+            : 0,
         });
       }
-
-    } catch (error) {
+    } catch {
       toast.error('Failed to load reports');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const currentReport = monthlyReports[0] || null;
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
-  const generatePDFReport = async () => {
-    try {
-      toast.success('Generating PDF report...');
-      // PDF generation logic would go here
-    } catch (error) {
-      toast.error('Failed to generate report');
-    }
-  };
-
   const exportToExcel = () => {
     const data = [
       ['Month', 'Income', 'Expenses', 'Net Profit', 'Tax Owed'],
-      ...monthlyReports.map(report => [
-        report.month,
-        report.total_income,
-        report.total_expenses,
-        report.net_profit,
-        report.tax_owed
-      ])
+      ...monthlyReports.map((r) => [r.month, r.total_income, r.total_expenses, r.net_profit, r.tax_owed]),
     ];
-    
-    const csvContent = data.map(row => row.join(',')).join('\n');
+    const csvContent = data.map((row) => row.join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `financial-report-${selectedYear}${selectedMonth ? `-${selectedMonth}` : ''}.csv`);
+    link.setAttribute('download', `report-${selectedYear}${selectedMonth ? `-${selectedMonth}` : ''}.csv`);
     document.body.appendChild(link);
     link.click();
     link.remove();
     toast.success('Report exported successfully');
   };
 
+  const generatePDF = () => toast.success('Generating PDF report…');
+
+  const currentReport = monthlyReports[0] || null;
+  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+  const months = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+
+  const profitMargin = currentReport && currentReport.total_income > 0
+    ? ((currentReport.net_profit / currentReport.total_income) * 100).toFixed(1)
+    : '0.0';
+
+  const isProfit = currentReport ? currentReport.net_profit >= 0 : true;
+
+  // ── Reusable select wrapper ──
+  const SelectField = ({ label, value, onChange, children }: {
+    label: string; value: string | number; onChange: (v: string) => void; children: React.ReactNode;
+  }) => (
+    <div className="flex flex-col gap-1">
+      <label className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+        {label}
+      </label>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full appearance-none rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 pr-8 text-sm font-medium text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white transition-colors"
+        >
+          {children}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+      </div>
+    </div>
+  );
+
   return (
     <>
-      <Navbar 
-        title="Reports" 
-        subtitle="Financial insights and analytics for your business"
-      />
-      
-      <main className="p-6">
-        {/* Report Controls */}
-        <Card className="mb-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center space-x-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Year
-                </label>
-                <select
-                  className="input-primary"
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(Number(e.target.value))}
-                >
-                  {years.map(year => (
-                    <option key={year} value={year}>{year}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Month
-                </label>
-                <select
-                  className="input-primary"
-                  value={selectedMonth || ''}
-                  onChange={(e) => setSelectedMonth(e.target.value ? Number(e.target.value) : null)}
-                >
-                  <option value="">All Months</option>
-                  {months.map((month, index) => (
-                    <option key={index} value={index + 1}>{month}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+      <Navbar title="Reports" subtitle="Financial insights and analytics for your business" />
+
+      <main className="min-h-screen bg-gray-50/60 dark:bg-gray-950 p-6 lg:p-8 transition-colors duration-200">
+        <div className="mx-auto max-w-7xl space-y-6">
+
+          {/* ── Page Header ── */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                Financial Reports
+              </h1>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Insights and analytics for your business
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={exportToExcel}
+                className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+              >
+                <Download className="h-4 w-4" />
+                Export CSV
+              </button>
+              <button
+                onClick={generatePDF}
+                className="inline-flex items-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-4 py-2.5 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm"
+              >
+                <FileText className="h-4 w-4" />
+                Download PDF
+              </button>
+            </div>
+          </div>
+
+          {/* ── Filter Bar ── */}
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
+            <div className="flex flex-wrap items-end gap-4">
+              <SelectField
+                label="Year"
+                value={selectedYear}
+                onChange={(v) => setSelectedYear(Number(v))}
+              >
+                {years.map((y) => <option key={y} value={y}>{y}</option>)}
+              </SelectField>
+
+              <SelectField
+                label="Month"
+                value={selectedMonth || ''}
+                onChange={(v) => setSelectedMonth(v ? Number(v) : null)}
+              >
+                <option value="">All Months</option>
+                {months.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+              </SelectField>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
                   Date Range
                 </label>
                 <DatePicker
-                  selectsRange={true}
+                  selectsRange
                   startDate={startDate}
                   endDate={endDate}
                   onChange={(update) => setDateRange(update)}
-                  isClearable={true}
-                  placeholderText="Select date range"
-                  className="input-primary"
+                  isClearable
+                  placeholderText="Pick a range"
+                  className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm font-medium text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white transition-colors w-52"
                 />
               </div>
             </div>
-            
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="secondary"
-                onClick={exportToExcel}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
-              </Button>
-              
-              <Button onClick={generatePDFReport}>
-                <Download className="h-4 w-4 mr-2" />
-                Download PDF
-              </Button>
-            </div>
           </div>
-        </Card>
 
-        {/* Current Period Summary */}
-        {currentReport && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <StatCard
-              title="Total Income"
-              value={currentReport.total_income}
-              icon={TrendingUp}
-              color="success"
-              formatCurrency
-              subtitle={`${currentReport.invoice_count} invoices`}
-            />
-            
-            <StatCard
-              title="Total Expenses"
-              value={currentReport.total_expenses}
-              icon={TrendingDown}
-              color="danger"
-              formatCurrency
-              subtitle={`${currentReport.expense_count} expenses`}
-            />
-            
-            <StatCard
-              title="Net Profit"
-              value={currentReport.net_profit}
-              icon={DollarSign}
-              color="primary"
-              formatCurrency
-              subtitle={`${((currentReport.net_profit / currentReport.total_income) * 100).toFixed(1)}% margin`}
-            />
-            
-            <StatCard
-              title="Tax Owed"
-              value={currentReport.tax_owed}
-              icon={Percent}
-              color="warning"
-              formatCurrency
-              subtitle="16% VAT Rate"
-            />
-          </div>
-        )}
-
-        {/* Charts and Detailed Reports */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Monthly Trend */}
-          <Card title="Monthly Financial Trend" actions={
-            <Button variant="ghost" size="sm">
-              <Filter className="h-4 w-4" />
-            </Button>
-          }>
-            <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-              <div className="text-center">
-                <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-500">Monthly trend chart would go here</p>
-                <p className="text-sm text-gray-400 mt-2">(Recharts integration needed)</p>
-              </div>
-            </div>
-            <div className="mt-4 space-y-2">
-              {monthlyReports.slice(0, 6).map((report) => (
-                <div key={report.month} className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{report.month}</span>
-                  <div className="flex items-center space-x-4">
-                    <span className="text-sm text-success-600">
-                      {formatCurrency(report.total_income)}
-                    </span>
-                    <span className="text-sm text-danger-600">
-                      {formatCurrency(report.total_expenses)}
-                    </span>
-                    <span className="text-sm font-semibold">
-                      {formatCurrency(report.net_profit)}
-                    </span>
-                  </div>
-                </div>
+          {/* ── KPI Cards ── */}
+          {isLoading ? (
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-28 animate-pulse rounded-2xl bg-gray-100 dark:bg-gray-800" />
               ))}
             </div>
-          </Card>
+          ) : currentReport ? (
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
 
-          {/* Expense Breakdown */}
-          <Card title="Expense Breakdown" actions={
-            <Button variant="ghost" size="sm">
-              <PieChart className="h-4 w-4" />
-            </Button>
-          }>
-            <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-              <div className="text-center">
-                <PieChart className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-500">Expense breakdown chart would go here</p>
-                <p className="text-sm text-gray-400 mt-2">(Recharts integration needed)</p>
+              {/* Income */}
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
+                <div className="flex items-start justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-950/50">
+                    <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+                    Total Income
+                  </p>
+                  <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(currentReport.total_income)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
+                    {currentReport.invoice_count} invoices
+                  </p>
+                </div>
+              </div>
+
+              {/* Expenses */}
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
+                <div className="flex items-start justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 dark:bg-red-950/50">
+                    <TrendingDown className="h-5 w-5 text-red-500 dark:text-red-400" />
+                  </div>
+                  <ArrowDownRight className="h-4 w-4 text-red-500 dark:text-red-400" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+                    Total Expenses
+                  </p>
+                  <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(currentReport.total_expenses)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
+                    {currentReport.expense_count} expenses
+                  </p>
+                </div>
+              </div>
+
+              {/* Net Profit */}
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
+                <div className="flex items-start justify-between">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                    isProfit ? 'bg-blue-50 dark:bg-blue-950/50' : 'bg-red-50 dark:bg-red-950/50'
+                  }`}>
+                    <DollarSign className={`h-5 w-5 ${
+                      isProfit ? 'text-blue-600 dark:text-blue-400' : 'text-red-500 dark:text-red-400'
+                    }`} />
+                  </div>
+                  {isProfit
+                    ? <ArrowUpRight className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                    : <ArrowDownRight className="h-4 w-4 text-red-500 dark:text-red-400" />
+                  }
+                </div>
+                <div className="mt-4">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+                    Net Profit
+                  </p>
+                  <p className={`mt-1 text-xl font-bold ${
+                    isProfit ? 'text-gray-900 dark:text-white' : 'text-red-600 dark:text-red-400'
+                  }`}>
+                    {formatCurrency(currentReport.net_profit)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
+                    {profitMargin}% margin
+                  </p>
+                </div>
+              </div>
+
+              {/* Tax Owed */}
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
+                <div className="flex items-start justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 dark:bg-amber-950/50">
+                    <Percent className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <Minus className="h-4 w-4 text-gray-300 dark:text-gray-600" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+                    Tax Owed
+                  </p>
+                  <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(currentReport.tax_owed)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
+                    16% VAT rate
+                  </p>
+                </div>
               </div>
             </div>
-            {profitLoss?.expenses.breakdown.length > 0 && (
-              <div className="mt-4 space-y-3">
-                {profitLoss.expenses.breakdown.map((item, index) => (
-                  <div key={index}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>{item.category}</span>
-                      <span>{formatCurrency(item.amount)} ({item.percentage.toFixed(1)}%)</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-primary-600 h-2 rounded-full"
-                        style={{ width: `${item.percentage}%` }}
-                      />
+          ) : null}
+
+          {/* ── Charts Row ── */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+
+            {/* Monthly Trend */}
+            <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-6 py-4">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Monthly Trend</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Income vs Expenses</p>
+                </div>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800">
+                  <BarChart3 className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                </div>
+              </div>
+
+              {/* Chart placeholder */}
+              <div className="mx-6 mt-5 flex h-44 items-center justify-center rounded-xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                <div className="text-center">
+                  <BarChart3 className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600" />
+                  <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">Recharts integration</p>
+                </div>
+              </div>
+
+              {/* Data rows */}
+              <div className="p-6 space-y-1">
+                {monthlyReports.slice(0, 5).map((report) => (
+                  <div key={report.month} className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 w-24 shrink-0">
+                      {report.month}
+                    </span>
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-medium tabular-nums">
+                        +{formatCurrency(report.total_income)}
+                      </span>
+                      <span className="text-red-500 dark:text-red-400 font-medium tabular-nums">
+                        -{formatCurrency(report.total_expenses)}
+                      </span>
+                      <span className={`font-semibold tabular-nums ${
+                        report.net_profit >= 0
+                          ? 'text-gray-900 dark:text-white'
+                          : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        {formatCurrency(report.net_profit)}
+                      </span>
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-          </Card>
-        </div>
+            </div>
 
-        {/* Tax Summary */}
-        {taxSummary && (
-          <Card title="Tax Summary" className="mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-600 mb-2">Total Tax Collected</p>
-                <p className="text-2xl font-bold text-blue-700">
-                  {formatCurrency(taxSummary.total_tax_collected)}
-                </p>
+            {/* Expense Breakdown */}
+            <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-6 py-4">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Expense Breakdown</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">By category</p>
+                </div>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800">
+                  <PieChart className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                </div>
               </div>
-              
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <p className="text-sm text-green-600 mb-2">Tax Deductible Expenses</p>
-                <p className="text-2xl font-bold text-green-700">
-                  {formatCurrency(taxSummary.total_tax_deductible)}
-                </p>
+
+              {/* Chart placeholder */}
+              <div className="mx-6 mt-5 flex h-44 items-center justify-center rounded-xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                <div className="text-center">
+                  <PieChart className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600" />
+                  <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">Recharts integration</p>
+                </div>
               </div>
-              
-              <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <p className="text-sm text-purple-600 mb-2">Net Tax Liability</p>
-                <p className="text-2xl font-bold text-purple-700">
-                  {formatCurrency(taxSummary.net_tax_liability)}
-                </p>
+
+              {/* Progress bars */}
+              <div className="p-6 space-y-3">
+                {profitLoss?.expenses.breakdown.length ? (
+                  profitLoss.expenses.breakdown.map((item, i) => (
+                    <div key={i}>
+                      <div className="flex items-center justify-between text-sm mb-1.5">
+                        <span className="font-medium text-gray-700 dark:text-gray-300">{item.category}</span>
+                        <span className="text-gray-500 dark:text-gray-400 tabular-nums">
+                          {formatCurrency(item.amount)}
+                          <span className="ml-1.5 text-xs text-gray-400 dark:text-gray-500">
+                            {item.percentage.toFixed(0)}%
+                          </span>
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                        <div
+                          className="h-full rounded-full bg-gray-900 dark:bg-white transition-all duration-500"
+                          style={{ width: `${item.percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-2">
+                    No expense data available
+                  </p>
+                )}
               </div>
             </div>
-            
-            <div className="mt-6">
-              <h4 className="font-medium text-gray-900 mb-4">Monthly Tax Overview</h4>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead>
-                    <tr>
-                      <th className="table-header">Month</th>
-                      <th className="table-header">Tax Collected</th>
-                      <th className="table-header">Tax Deductible</th>
-                      <th className="table-header">Net Tax</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {taxSummary.by_month.slice(0, 6).map((month, index) => (
-                      <tr key={index}>
-                        <td className="table-cell">{month.month}</td>
-                        <td className="table-cell text-green-600 font-medium">
-                          {formatCurrency(month.tax_collected)}
-                        </td>
-                        <td className="table-cell text-blue-600 font-medium">
-                          {formatCurrency(month.tax_deductible)}
-                        </td>
-                        <td className="table-cell font-bold">
-                          {formatCurrency(month.tax_collected - month.tax_deductible)}
-                        </td>
+          </div>
+
+          {/* ── Tax Summary ── */}
+          {taxSummary && (
+            <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
+              <div className="border-b border-gray-100 dark:border-gray-800 px-6 py-4">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">Tax Summary</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  VAT collected, deductibles, and net liability
+                </p>
+              </div>
+
+              {/* Tax KPIs */}
+              <div className="grid grid-cols-1 gap-px bg-gray-100 dark:bg-gray-800 md:grid-cols-3">
+                <div className="bg-white dark:bg-gray-900 p-6 text-center">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-blue-500 dark:text-blue-400">
+                    Tax Collected
+                  </p>
+                  <p className="mt-3 text-2xl font-bold text-gray-900 dark:text-white tabular-nums">
+                    {formatCurrency(taxSummary.total_tax_collected)}
+                  </p>
+                </div>
+                <div className="bg-white dark:bg-gray-900 p-6 text-center">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-emerald-500 dark:text-emerald-400">
+                    Tax Deductible
+                  </p>
+                  <p className="mt-3 text-2xl font-bold text-gray-900 dark:text-white tabular-nums">
+                    {formatCurrency(taxSummary.total_tax_deductible)}
+                  </p>
+                </div>
+                <div className="bg-white dark:bg-gray-900 p-6 text-center">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-violet-500 dark:text-violet-400">
+                    Net Liability
+                  </p>
+                  <p className="mt-3 text-2xl font-bold text-gray-900 dark:text-white tabular-nums">
+                    {formatCurrency(taxSummary.net_tax_liability)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Tax table */}
+              <div className="p-6">
+                <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+                  Monthly Breakdown
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full">
+                    <thead>
+                      <tr className="border-b border-gray-100 dark:border-gray-800">
+                        {['Month', 'Tax Collected', 'Tax Deductible', 'Net Tax'].map((h) => (
+                          <th key={h} className="pb-3 text-left text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 pr-6">
+                            {h}
+                          </th>
+                        ))}
                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                      {taxSummary.by_month.slice(0, 6).map((month, i) => (
+                        <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                          <td className="py-3 pr-6 text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {month.month}
+                          </td>
+                          <td className="py-3 pr-6 text-sm font-semibold text-blue-600 dark:text-blue-400 tabular-nums">
+                            {formatCurrency(month.tax_collected)}
+                          </td>
+                          <td className="py-3 pr-6 text-sm font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                            {formatCurrency(month.tax_deductible)}
+                          </td>
+                          <td className="py-3 text-sm font-bold text-gray-900 dark:text-white tabular-nums">
+                            {formatCurrency(month.tax_collected - month.tax_deductible)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Profit & Loss Statement ── */}
+          {profitLoss && (
+            <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
+              <div className="border-b border-gray-100 dark:border-gray-800 px-6 py-4">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">Profit & Loss Statement</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  Full revenue, expense, and net profit breakdown
+                </p>
+              </div>
+
+              <div className="p-6 space-y-6">
+
+                {/* Revenue */}
+                <div>
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+                    Revenue
+                  </p>
+                  <div className="space-y-2">
+                    {profitLoss.revenue.breakdown.map((item, i) => (
+                      <div key={i} className="flex items-center justify-between rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 px-4 py-3">
+                        <span className="text-sm font-medium text-emerald-800 dark:text-emerald-300">
+                          {item.source}
+                        </span>
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-emerald-900 dark:text-emerald-200 tabular-nums">
+                            {formatCurrency(item.amount)}
+                          </p>
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                            {item.percentage.toFixed(1)}%
+                          </p>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {/* Profit & Loss Statement */}
-        {profitLoss && (
-          <Card title="Profit & Loss Statement">
-            <div className="space-y-6">
-              {/* Revenue Section */}
-              <div>
-                <h4 className="font-medium text-gray-900 mb-3">Revenue</h4>
-                <div className="space-y-2">
-                  {profitLoss.revenue.breakdown.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                      <span>{item.source}</span>
-                      <div className="text-right">
-                        <p className="font-semibold">{formatCurrency(item.amount)}</p>
-                        <p className="text-sm text-gray-500">{item.percentage.toFixed(1)}%</p>
-                      </div>
+                    {/* Revenue total */}
+                    <div className="flex items-center justify-between rounded-xl bg-emerald-100 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 px-4 py-3">
+                      <span className="text-sm font-bold text-emerald-900 dark:text-emerald-100">
+                        Total Revenue
+                      </span>
+                      <span className="text-base font-bold text-emerald-900 dark:text-emerald-100 tabular-nums">
+                        {formatCurrency(profitLoss.revenue.total)}
+                      </span>
                     </div>
-                  ))}
-                  <div className="flex justify-between items-center p-3 bg-green-100 rounded-lg border border-green-200">
-                    <span className="font-semibold">Total Revenue</span>
-                    <span className="font-bold text-lg">{formatCurrency(profitLoss.revenue.total)}</span>
                   </div>
                 </div>
-              </div>
 
-              {/* Expenses Section */}
-              <div>
-                <h4 className="font-medium text-gray-900 mb-3">Expenses</h4>
-                <div className="space-y-2">
-                  {profitLoss.expenses.breakdown.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
-                      <span>{item.category}</span>
-                      <div className="text-right">
-                        <p className="font-semibold">{formatCurrency(item.amount)}</p>
-                        <p className="text-sm text-gray-500">{item.percentage.toFixed(1)}%</p>
+                {/* Divider */}
+                <div className="border-t border-gray-100 dark:border-gray-800" />
+
+                {/* Expenses */}
+                <div>
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+                    Expenses
+                  </p>
+                  <div className="space-y-2">
+                    {profitLoss.expenses.breakdown.map((item, i) => (
+                      <div key={i} className="flex items-center justify-between rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 px-4 py-3">
+                        <span className="text-sm font-medium text-red-800 dark:text-red-300">
+                          {item.category}
+                        </span>
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-red-900 dark:text-red-200 tabular-nums">
+                            {formatCurrency(item.amount)}
+                          </p>
+                          <p className="text-xs text-red-600 dark:text-red-400">
+                            {item.percentage.toFixed(1)}%
+                          </p>
+                        </div>
                       </div>
+                    ))}
+                    {/* Expenses total */}
+                    <div className="flex items-center justify-between rounded-xl bg-red-100 dark:bg-red-950/40 border border-red-200 dark:border-red-800/40 px-4 py-3">
+                      <span className="text-sm font-bold text-red-900 dark:text-red-100">
+                        Total Expenses
+                      </span>
+                      <span className="text-base font-bold text-red-900 dark:text-red-100 tabular-nums">
+                        {formatCurrency(profitLoss.expenses.total)}
+                      </span>
                     </div>
-                  ))}
-                  <div className="flex justify-between items-center p-3 bg-red-100 rounded-lg border border-red-200">
-                    <span className="font-semibold">Total Expenses</span>
-                    <span className="font-bold text-lg">{formatCurrency(profitLoss.expenses.total)}</span>
                   </div>
                 </div>
-              </div>
 
-              {/* Net Profit Section */}
-              <div className="border-t pt-6">
-                <div className="flex justify-between items-center p-4 bg-gradient-to-r from-primary-50 to-primary-100 rounded-lg border border-primary-200">
+                {/* Divider */}
+                <div className="border-t border-gray-100 dark:border-gray-800" />
+
+                {/* Net Profit */}
+                <div className={`flex items-center justify-between rounded-2xl border px-5 py-4 ${
+                  profitLoss.net_profit >= 0
+                    ? 'border-blue-200 dark:border-blue-800/40 bg-blue-50 dark:bg-blue-950/20'
+                    : 'border-red-200 dark:border-red-800/40 bg-red-50 dark:bg-red-950/20'
+                }`}>
                   <div>
-                    <p className="font-semibold text-primary-900">Net Profit</p>
-                    <p className="text-sm text-primary-700">Profit Margin: {profitLoss.profit_margin.toFixed(1)}%</p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-2xl font-bold ${profitLoss.net_profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency(profitLoss.net_profit)}
+                    <p className={`text-sm font-bold ${
+                      profitLoss.net_profit >= 0
+                        ? 'text-blue-900 dark:text-blue-100'
+                        : 'text-red-900 dark:text-red-100'
+                    }`}>
+                      Net Profit
                     </p>
-                    <p className="text-sm text-primary-700">
-                      {profitLoss.net_profit >= 0 ? '✅ Profitable' : '⚠️ Loss'}
+                    <p className={`text-xs mt-0.5 ${
+                      profitLoss.net_profit >= 0
+                        ? 'text-blue-600 dark:text-blue-400'
+                        : 'text-red-600 dark:text-red-400'
+                    }`}>
+                      {profitLoss.profit_margin.toFixed(1)}% profit margin ·{' '}
+                      {profitLoss.net_profit >= 0 ? 'Profitable period' : 'Loss period'}
                     </p>
                   </div>
+                  <p className={`text-2xl font-bold tabular-nums ${
+                    profitLoss.net_profit >= 0
+                      ? 'text-blue-700 dark:text-blue-200'
+                      : 'text-red-700 dark:text-red-200'
+                  }`}>
+                    {formatCurrency(profitLoss.net_profit)}
+                  </p>
                 </div>
+
               </div>
             </div>
-          </Card>
-        )}
+          )}
+
+        </div>
       </main>
     </>
   );

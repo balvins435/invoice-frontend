@@ -2,64 +2,71 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import { Navbar } from '@/components/Navbar';
 import { InvoiceForm } from './components/InvoiceForm';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 
 export default function CreateInvoicePage() {
-  const router = useRouter();
-
   return (
     <>
-      <Navbar 
-        title="Create New Invoice" 
+      <Navbar
+        title="Create Invoice"
         subtitle="Fill in the details to generate a professional invoice"
       />
-      
-      <main className="p-6">
-        <div className="max-w-5xl mx-auto">
-          {/* Header Actions */}
-          <div className="flex items-center justify-between mb-6">
-            <Link 
+
+      <main className="min-h-screen bg-gray-50/60 dark:bg-gray-950 p-6 lg:p-8 transition-colors duration-200">
+        <div className="mx-auto max-w-5xl space-y-6">
+
+          {/* ── Header bar ── */}
+          <div className="flex items-center justify-between">
+            <Link
               href="/invoices"
-              className="inline-flex items-center text-gray-600 hover:text-gray-900"
+              className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="h-4 w-4" />
               Back to Invoices
             </Link>
-            
-            <div className="flex items-center space-x-3">
-              <Link href="/invoices">
-                <Button variant="secondary">Cancel</Button>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/invoices"
+                className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
               </Link>
-              <Button 
-                type="submit" 
+              <button
+                type="submit"
                 form="invoice-form"
-                className="bg-primary-600 hover:bg-primary-700"
+                className="rounded-xl bg-gray-900 dark:bg-white px-4 py-2.5 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm"
               >
                 Create Invoice
-              </Button>
+              </button>
             </div>
           </div>
 
-          {/* Invoice Form */}
-          <Card className="p-6">
+          {/* ── Form ── */}
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm p-6 lg:p-8">
             <InvoiceForm />
-          </Card>
-
-          {/* Help Section */}
-          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-blue-800 mb-2">📋 Invoice Tips</h3>
-            <ul className="text-sm text-blue-700 space-y-1">
-              <li>• Add clear item descriptions to avoid client confusion</li>
-              <li>• Set a reasonable due date (usually 14-30 days)</li>
-              <li>• VAT is automatically calculated at 16% (customizable in Business settings)</li>
-              <li>• You can save as draft and send later</li>
-            </ul>
           </div>
+
+          {/* ── Tips ── */}
+          <div className="rounded-2xl border border-blue-100 dark:border-blue-900/40 bg-blue-50 dark:bg-blue-950/20 p-5">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/50">
+                <Lightbulb className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Invoice Tips</p>
+                <ul className="mt-2 space-y-1 text-xs text-blue-600 dark:text-blue-400">
+                  <li>· Add clear item descriptions to avoid client confusion</li>
+                  <li>· Set a reasonable due date — typically 14–30 days</li>
+                  <li>· VAT is auto-calculated from your Business settings</li>
+                  <li>· Save as draft first and review before sending</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
         </div>
       </main>
     </>

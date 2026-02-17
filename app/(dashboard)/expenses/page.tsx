@@ -1,459 +1,468 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Download, 
-  Edit, 
-  Trash2,
-  TrendingUp,
-  PieChart,
-  Calendar,
-  Tag
+import {
+  Plus, Search, Filter, Download, Edit, Trash2,
+  TrendingDown, PieChart, Tag, X, ChevronDown,
+  AlertTriangle, ReceiptText,
 } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
-import { StatCard } from '@/components/StatCard';
 import { apiService } from '@/lib/api';
 import { Expense, ExpenseFilters, ExpenseCategory, EXPENSE_CATEGORIES } from '@/types';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Spinner } from '@/components/ui/Spinner';
 
+// ── helpers ───────────────────────────────────────────────────────────────────
+const toNumber = (v: unknown): number => {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+  if (typeof v === 'string') { const p = parseFloat(v); return Number.isFinite(p) ? p : 0; }
+  return 0;
+};
+
+const exportCSV = (rows: Expense[]) => {
+  const data = [
+    ['Title', 'Category', 'Amount', 'Date', 'Tax Deductible'],
+    ...rows.map(e => [e.title, e.category, e.amount, e.expense_date, e.tax_deductible ? 'Yes' : 'No']),
+  ];
+  const blob = new Blob([data.map(r => r.join(',')).join('\n')], { type: 'text/csv' });
+  const url  = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', `expenses-${new Date().toISOString().split('T')[0]}.csv`);
+  document.body.appendChild(link); link.click(); link.remove();
+  toast.success('Expenses exported');
+};
+
+// ── select wrapper ────────────────────────────────────────────────────────────
+const SelectField = ({ label, value, onChange, children }: {
+  label: string; value: string; onChange: (v: string) => void; children: React.ReactNode;
+}) => (
+  <div>
+    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+      {label}
+    </label>
+    <div className="relative">
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="w-full appearance-none rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 pr-8 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white transition-colors"
+      >
+        {children}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+    </div>
+  </div>
+);
+
+// ── component ─────────────────────────────────────────────────────────────────
 export default function ExpensesPage() {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState<ExpenseFilters>({});
-  const [showFilters, setShowFilters] = useState(false);
+  const [expenses, setExpenses]               = useState<Expense[]>([]);
+  const [isLoading, setIsLoading]             = useState(true);
+  const [searchQuery, setSearchQuery]         = useState('');
+  const [filters, setFilters]                 = useState<ExpenseFilters>({});
+  const [showFilters, setShowFilters]         = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showCategoryChart, setShowCategoryChart] = useState(false);
-  const [pendingRoute, setPendingRoute] = useState<string | null>(null);
-  const router = useRouter();
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [pendingRoute, setPendingRoute]       = useState<string | null>(null);
+  const router   = useRouter();
   const pathname = usePathname();
 
-  useEffect(() => {
-    fetchExpenses();
-  }, [filters]);
-
-  useEffect(() => {
-    router.prefetch('/expenses/create');
-  }, [router]);
+  useEffect(() => { fetchExpenses(); }, [filters]);
+  useEffect(() => { router.prefetch('/expenses/create'); }, [router]);
 
   const fetchExpenses = async () => {
     try {
       setIsLoading(true);
-      const response = await apiService.expenses.getAll(filters);
-      const payload = response.data;
-      const list = Array.isArray(payload)
-        ? payload
-        : Array.isArray(payload?.results)
-          ? payload.results
-          : [];
-      setExpenses(list);
-    } catch (error) {
-      toast.error('Failed to load expenses');
-    } finally {
-      setIsLoading(false);
-    }
+      const res     = await apiService.expenses.getAll(filters);
+      const payload = res.data;
+      setExpenses(Array.isArray(payload) ? payload : Array.isArray(payload?.results) ? payload.results : []);
+    } catch { toast.error('Failed to load expenses'); }
+    finally  { setIsLoading(false); }
   };
 
   const handleDelete = async () => {
     if (!selectedExpense) return;
-
     try {
       await apiService.expenses.delete(selectedExpense.id);
-      toast.success('Expense deleted successfully');
+      toast.success('Expense deleted');
       fetchExpenses();
       setShowDeleteModal(false);
       setSelectedExpense(null);
-    } catch (error) {
-      toast.error('Failed to delete expense');
-    }
+    } catch { toast.error('Failed to delete expense'); }
   };
 
-  const expenseSummary = {
-    total: expenses.length,
-    totalAmount: expenses.reduce((sum, e) => sum + e.amount, 0),
-    deductible: expenses.filter(e => e.tax_deductible).reduce((sum, e) => sum + e.amount, 0),
-    nonDeductible: expenses.filter(e => !e.tax_deductible).reduce((sum, e) => sum + e.amount, 0),
-    byCategory: expenses.reduce((acc, expense) => {
-      const category = expense.category;
-      acc[category] = (acc[category] || 0) + expense.amount;
-      return acc;
-    }, {} as Record<string, number>),
-  };
-
-  const filteredExpenses = expenses.filter(expense =>
-    expense.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    expense.category.toLowerCase().includes(searchQuery.toLowerCase())
+  // ── derived ────────────────────────────────────────────────────────────────
+  const filtered = expenses.filter(e =>
+    e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    e.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const topCategories = Object.entries(expenseSummary.byCategory)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 5);
+  const totalAmount    = expenses.reduce((s, e) => s + toNumber(e.amount), 0);
+  const deductible     = expenses.filter(e => e.tax_deductible).reduce((s, e) => s + toNumber(e.amount), 0);
+  const nonDeductible  = expenses.filter(e => !e.tax_deductible).reduce((s, e) => s + toNumber(e.amount), 0);
+  const byCategory     = expenses.reduce((acc, e) => {
+    acc[e.category] = (acc[e.category] || 0) + toNumber(e.amount);
+    return acc;
+  }, {} as Record<string, number>);
+
+  const topCategories = Object.entries(byCategory).sort(([, a], [, b]) => b - a).slice(0, 6);
+  const categoryCount = Object.keys(byCategory).length;
+
   const isCreatePending = pendingRoute === '/expenses/create' && pathname !== '/expenses/create';
 
   return (
     <>
-      <Navbar 
-        title="Expenses" 
-        subtitle="Track and manage your business expenses"
-      />
-      
-      <main className="p-6">
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <StatCard
-            title="Total Expenses"
-            value={expenseSummary.totalAmount}
-            icon={TrendingUp}
-            color="danger"
-            formatCurrency
-          />
-          
-          <StatCard
-            title="Tax Deductible"
-            value={expenseSummary.deductible}
-            icon={Tag}
-            color="success"
-            formatCurrency
-          />
-          
-          <StatCard
-            title="Non-Deductible"
-            value={expenseSummary.nonDeductible}
-            icon={Tag}
-            color="warning"
-            formatCurrency
-          />
-          
-          <Card className="flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50"
-            onClick={() => setShowCategoryChart(true)}>
-            <PieChart className="h-8 w-8 text-primary-600 mb-2" />
-            <p className="text-sm text-gray-500">Categories</p>
-            <p className="text-2xl font-bold text-gray-900">{Object.keys(expenseSummary.byCategory).length}</p>
-          </Card>
-        </div>
+      <Navbar title="Expenses" subtitle="Track and manage your business expenses" />
 
-        {/* Toolbar */}
-        <Card className="mb-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="w-full sm:w-auto">
-              <Input
-                placeholder="Search expenses..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                leftIcon={<Search className="h-5 w-5" />}
-                className="w-full sm:w-64"
-              />
+      <main className="min-h-screen bg-gray-50/60 dark:bg-gray-950 p-6 lg:p-8 transition-colors duration-200">
+        <div className="mx-auto max-w-7xl space-y-6">
+
+          {/* ── Page header ── */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Expenses</h1>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Track and manage your business expenses</p>
             </div>
-            
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="secondary"
-                onClick={() => setShowFilters(!showFilters)}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => exportCSV(filtered)}
+                className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
               >
-                <Filter className="h-4 w-4 mr-2" />
-                Filters
-              </Button>
-              
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  const csvData = [
-                    ['Title', 'Category', 'Amount', 'Date', 'Tax Deductible'],
-                    ...filteredExpenses.map(e => [
-                      e.title,
-                      e.category,
-                      e.amount,
-                      e.expense_date,
-                      e.tax_deductible ? 'Yes' : 'No'
-                    ])
-                  ];
-                  
-                  const csvContent = csvData.map(row => row.join(',')).join('\n');
-                  const blob = new Blob([csvContent], { type: 'text/csv' });
-                  const url = window.URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.setAttribute('download', `expenses-${new Date().toISOString().split('T')[0]}.csv`);
-                  document.body.appendChild(link);
-                  link.click();
-                  link.remove();
-                }}
-              >
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="h-4 w-4" />
                 Export CSV
-              </Button>
-              
+              </button>
               <Link
                 href="/expenses/create"
                 onClick={() => setPendingRoute('/expenses/create')}
-                className={isCreatePending ? 'pointer-events-none opacity-80' : ''}
+                className="inline-flex items-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-4 py-2.5 text-sm font-medium text-white dark:text-gray-900 shadow-sm hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
               >
-                <Button>
-                  {isCreatePending ? <Spinner size="sm" className="mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                  Add Expense
-                </Button>
+                <Plus className="h-4 w-4" />
+                Add Expense
               </Link>
             </div>
           </div>
 
-          {/* Filters */}
-          {showFilters && (
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Category
-                  </label>
-                  <select
-                    className="input-primary"
+          {/* ── KPI strip ── */}
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+
+            {/* Total */}
+            <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
+              <div className="flex items-start justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 dark:bg-red-950/50">
+                  <TrendingDown className="h-5 w-5 text-red-500 dark:text-red-400" />
+                </div>
+              </div>
+              <div className="mt-4">
+                <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Total Expenses</p>
+                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white tabular-nums">{formatCurrency(totalAmount)}</p>
+                <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">{expenses.length} records</p>
+              </div>
+            </div>
+
+            {/* Deductible */}
+            <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
+              <div className="flex items-start justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-950/50">
+                  <Tag className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <span className="text-xs font-semibold text-emerald-500 dark:text-emerald-400">Deductible</span>
+              </div>
+              <div className="mt-4">
+                <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Tax Deductible</p>
+                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white tabular-nums">{formatCurrency(deductible)}</p>
+                <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
+                  {totalAmount > 0 ? ((deductible / totalAmount) * 100).toFixed(0) : 0}% of total
+                </p>
+              </div>
+            </div>
+
+            {/* Non-deductible */}
+            <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
+              <div className="flex items-start justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 dark:bg-amber-950/50">
+                  <Tag className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <span className="text-xs font-semibold text-amber-500 dark:text-amber-400">Non-deductible</span>
+              </div>
+              <div className="mt-4">
+                <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Non-Deductible</p>
+                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white tabular-nums">{formatCurrency(nonDeductible)}</p>
+                <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
+                  {totalAmount > 0 ? ((nonDeductible / totalAmount) * 100).toFixed(0) : 0}% of total
+                </p>
+              </div>
+            </div>
+
+            {/* Categories — clickable */}
+            <button
+              onClick={() => setShowCategoryModal(true)}
+              className="group rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm text-left hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-md transition-all"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 dark:bg-violet-950/50">
+                  <PieChart className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                </div>
+                <span className="text-xs font-semibold text-violet-500 dark:text-violet-400 group-hover:underline">View →</span>
+              </div>
+              <div className="mt-4">
+                <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Categories</p>
+                <p className="mt-1 text-3xl font-bold text-gray-900 dark:text-white">{categoryCount}</p>
+                <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">unique categories</p>
+              </div>
+            </button>
+          </div>
+
+          {/* ── Toolbar ── */}
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+            <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative w-full sm:w-72">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+                <input
+                  type="text"
+                  placeholder="Search by title, category…"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 py-2 pl-9 pr-3 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white transition-colors"
+                />
+              </div>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
+                  showFilters
+                    ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                <Filter className="h-4 w-4" />
+                Filters
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+              </button>
+            </div>
+
+            {/* Filter panel */}
+            {showFilters && (
+              <div className="border-t border-gray-100 dark:border-gray-800 p-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                  <SelectField
+                    label="Category"
                     value={filters.category || ''}
-                    onChange={(e) => setFilters({
-                      ...filters,
-                      category: e.target.value as ExpenseCategory,
-                    })}
+                    onChange={v => setFilters({ ...filters, category: v as ExpenseCategory })}
                   >
                     <option value="">All Categories</option>
-                    {Object.entries(EXPENSE_CATEGORIES).map(([key, label]) => (
-                      <option key={key} value={key}>{label}</option>
+                    {Object.entries(EXPENSE_CATEGORIES).map(([k, label]) => (
+                      <option key={k} value={k}>{label}</option>
                     ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    From Date
-                  </label>
-                  <Input
-                    type="date"
-                    value={filters.date_from || ''}
-                    onChange={(e) => setFilters({
-                      ...filters,
-                      date_from: e.target.value,
-                    })}
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    To Date
-                  </label>
-                  <Input
-                    type="date"
-                    value={filters.date_to || ''}
-                    onChange={(e) => setFilters({
-                      ...filters,
-                      date_to: e.target.value,
-                    })}
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tax Deductible
-                  </label>
-                  <select
-                    className="input-primary"
-                    value={filters.tax_deductible === undefined ? '' : filters.tax_deductible.toString()}
-                    onChange={(e) => setFilters({
-                      ...filters,
-                      tax_deductible: e.target.value === '' ? undefined : e.target.value === 'true',
-                    })}
+                  </SelectField>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">From</label>
+                    <Input type="date" value={filters.date_from || ''} onChange={e => setFilters({ ...filters, date_from: e.target.value })} />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">To</label>
+                    <Input type="date" value={filters.date_to || ''} onChange={e => setFilters({ ...filters, date_to: e.target.value })} />
+                  </div>
+
+                  <SelectField
+                    label="Tax Status"
+                    value={filters.tax_deductible === undefined ? '' : String(filters.tax_deductible)}
+                    onChange={v => setFilters({ ...filters, tax_deductible: v === '' ? undefined : v === 'true' })}
                   >
                     <option value="">All</option>
                     <option value="true">Deductible Only</option>
                     <option value="false">Non-Deductible Only</option>
-                  </select>
+                  </SelectField>
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={() => setFilters({})}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <X className="h-3.5 w-3.5" /> Clear Filters
+                  </button>
                 </div>
               </div>
-              
-              <div className="mt-4 flex justify-end">
-                <Button
-                  variant="secondary"
-                  onClick={() => setFilters({})}
-                >
-                  Clear Filters
-                </Button>
-              </div>
-            </div>
-          )}
-        </Card>
+            )}
+          </div>
 
-        {/* Expenses Table */}
-        <Card>
-          {isLoading ? (
-            <div className="py-12 text-center">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-              <p className="mt-2 text-gray-500">Loading expenses...</p>
-            </div>
-          ) : filteredExpenses.length === 0 ? (
-            <div className="py-12 text-center">
-              <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No expenses found
-              </h3>
-              <p className="text-gray-500 mb-6">
-                {searchQuery ? 'Try changing your search query' : 'Get started by adding your first expense'}
-              </p>
-              <Link
-                href="/expenses/create"
-                onClick={() => setPendingRoute('/expenses/create')}
-                className={isCreatePending ? 'pointer-events-none opacity-80' : ''}
-              >
-                <Button>
-                  {isCreatePending ? <Spinner size="sm" className="mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                  Add Expense
-                </Button>
-              </Link>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead>
-                  <tr>
-                    <th className="table-header">Date</th>
-                    <th className="table-header">Title</th>
-                    <th className="table-header">Category</th>
-                    <th className="table-header">Amount</th>
-                    <th className="table-header">Tax Status</th>
-                    <th className="table-header">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredExpenses.map((expense) => (
-                    <tr key={expense.id} className="hover:bg-gray-50">
-                      <td className="table-cell">
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                          {formatDate(expense.expense_date)}
-                        </div>
-                      </td>
-                      <td className="table-cell">
-                        <div className="font-medium">{expense.title}</div>
-                      </td>
-                      <td className="table-cell">
-                        <Badge variant="secondary">
-                          {EXPENSE_CATEGORIES[expense.category as ExpenseCategory] || expense.category}
-                        </Badge>
-                      </td>
-                      <td className="table-cell font-semibold">
-                        {formatCurrency(expense.amount)}
-                      </td>
-                      <td className="table-cell">
-                        {expense.tax_deductible ? (
-                          <Badge variant="success">Tax Deductible</Badge>
-                        ) : (
-                          <Badge variant="secondary">Not Deductible</Badge>
-                        )}
-                      </td>
-                      <td className="table-cell">
-                        <div className="flex items-center space-x-2">
-                          <Link href={`/expenses/${expense.id}/edit`}>
-                            <button
-                              className="p-1 text-gray-400 hover:text-gray-600"
-                              title="Edit"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                          </Link>
-                          
-                          <button
-                            onClick={() => {
-                              setSelectedExpense(expense);
-                              setShowDeleteModal(true);
-                            }}
-                            className="p-1 text-gray-400 hover:text-danger-600"
-                            title="Delete"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
+          {/* ── Table ── */}
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 dark:border-gray-700 border-t-gray-900 dark:border-t-white" />
+                <p className="mt-3 text-sm text-gray-400 dark:text-gray-500">Loading expenses…</p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 dark:bg-gray-800">
+                  <ReceiptText className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+                </div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {searchQuery ? 'No expenses match your search' : 'No expenses yet'}
+                </p>
+                <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                  {searchQuery ? 'Try a different query' : 'Add your first expense to get started'}
+                </p>
+                {!searchQuery && (
+                  <Link
+                    href="/expenses/create"
+                    onClick={() => setPendingRoute('/expenses/create')}
+                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-4 py-2.5 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                  >
+                    <Plus className="h-4 w-4" /> Add Expense
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b border-gray-100 dark:border-gray-800">
+                      {['Date', 'Title', 'Category', 'Amount', 'Tax Status', ''].map(h => (
+                        <th key={h} className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+                          {h}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                    {filtered.map(expense => (
+                      <tr key={expense.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400 tabular-nums whitespace-nowrap">
+                          {formatDate(expense.expense_date)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{expense.title}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300">
+                            {EXPENSE_CATEGORIES[expense.category as ExpenseCategory] || expense.category}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-gray-100 tabular-nums">
+                          {formatCurrency(expense.amount)}
+                        </td>
+                        <td className="px-6 py-4">
+                          {expense.tax_deductible ? (
+                            <span className="inline-flex items-center rounded-full border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                              Deductible
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-2.5 py-0.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+                              Not Deductible
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-1">
+                            <Link href={`/expenses/${expense.id}/edit`}>
+                              <button
+                                title="Edit"
+                                className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                            </Link>
+                            <button
+                              onClick={() => { setSelectedExpense(expense); setShowDeleteModal(true); }}
+                              title="Delete"
+                              className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 dark:text-gray-500 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+        </div>
       </main>
 
-      {/* Category Chart Modal */}
-      <Modal
-        isOpen={showCategoryChart}
-        onClose={() => setShowCategoryChart(false)}
-        title="Expense Categories Breakdown"
-        size="lg"
-      >
-        <div className="space-y-6">
-          <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
+      {/* ── Category breakdown modal ── */}
+      <Modal isOpen={showCategoryModal} onClose={() => setShowCategoryModal(false)} title="Expense Categories" size="lg">
+        <div className="space-y-5">
+
+          {/* Chart placeholder */}
+          <div className="flex h-48 items-center justify-center rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
             <div className="text-center">
-              <PieChart className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-500">Chart visualization would go here</p>
-              <p className="text-sm text-gray-400 mt-2">(Recharts integration needed)</p>
+              <PieChart className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600" />
+              <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">Recharts integration</p>
             </div>
           </div>
-          
-          <div className="space-y-3">
-            <h4 className="font-medium text-gray-900">Category Summary</h4>
-            {topCategories.map(([category, amount]) => (
-              <div key={category} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="h-3 w-3 rounded-full bg-primary-500 mr-3"></div>
-                  <span className="font-medium">
-                    {EXPENSE_CATEGORIES[category as ExpenseCategory] || category}
-                  </span>
+
+          {/* Category rows */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Breakdown</p>
+            {topCategories.map(([category, amount]) => {
+              const pct = totalAmount > 0 ? (amount / totalAmount) * 100 : 0;
+              return (
+                <div key={category}>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {EXPENSE_CATEGORIES[category as ExpenseCategory] || category}
+                    </span>
+                    <div className="text-right">
+                      <span className="text-sm font-bold text-gray-900 dark:text-white tabular-nums">{formatCurrency(amount)}</span>
+                      <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">{pct.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                    <div
+                      className="h-full rounded-full bg-gray-900 dark:bg-white transition-all duration-500"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold">{formatCurrency(amount)}</p>
-                  <p className="text-sm text-gray-500">
-                    {((amount / expenseSummary.totalAmount) * 100).toFixed(1)}%
-                  </p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
+          </div>
+
+          {/* Total */}
+          <div className="flex items-center justify-between rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-5 py-4">
+            <span className="text-sm font-bold text-gray-900 dark:text-white">Total Expenses</span>
+            <span className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">{formatCurrency(totalAmount)}</span>
           </div>
         </div>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        title="Delete Expense"
-      >
+      {/* ── Delete modal ── */}
+      <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Delete Expense">
         <div className="space-y-4">
-          <p className="text-gray-600">
-            Are you sure you want to delete expense{' '}
-            <span className="font-semibold">{selectedExpense?.title}</span>?
-            This action cannot be undone.
-          </p>
-          
-          <div className="flex justify-end space-x-3">
-            <Button
-              variant="secondary"
+          <div className="flex items-start gap-4 rounded-2xl border border-red-100 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-4">
+            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-100 dark:bg-red-900/50">
+              <AlertTriangle className="h-5 w-5 text-red-500 dark:text-red-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-red-800 dark:text-red-300">This action is permanent</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                <span className="font-semibold">{selectedExpense?.title}</span> will be permanently deleted.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <button
               onClick={() => setShowDeleteModal(false)}
+              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               Cancel
-            </Button>
-            <Button
-              variant="danger"
+            </button>
+            <button
               onClick={handleDelete}
+              className="inline-flex items-center gap-2 rounded-xl bg-red-600 dark:bg-red-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-700 dark:hover:bg-red-600 transition-colors"
             >
-              Delete Expense
-            </Button>
+              <Trash2 className="h-4 w-4" /> Delete Expense
+            </button>
           </div>
         </div>
       </Modal>

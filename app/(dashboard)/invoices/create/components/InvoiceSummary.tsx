@@ -1,177 +1,133 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { Receipt, Percent, Calculator, TrendingUp, FileText, Info } from 'lucide-react';
+import { Receipt, Percent, Calculator, TrendingUp, FileText } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
-interface InvoiceSummaryProps {
-  items: Array<{
-    description: any; quantity: number; unit_price: number; total: number 
-}>;
+interface Props {
+  items: Array<{ description: any; quantity: number; unit_price: number; total: number }>;
   taxRate: number;
 }
 
-export const InvoiceSummary: React.FC<InvoiceSummaryProps> = ({ items, taxRate }) => {
-  const subtotal = useMemo(() => {
-    return items.reduce((sum, item) => sum + (item.total || 0), 0);
-  }, [items]);
-
-  const taxAmount = useMemo(() => {
-    return (subtotal * taxRate) / 100;
-  }, [subtotal, taxRate]);
-
-  const totalAmount = useMemo(() => {
-    return subtotal + taxAmount;
-  }, [subtotal, taxAmount]);
-
-  const itemCount = useMemo(() => {
-    return items.filter(item => item.description.trim() !== '').length;
-  }, [items]);
+export const InvoiceSummary: React.FC<Props> = ({ items, taxRate }) => {
+  const subtotal = useMemo(() => items.reduce((s, i) => s + (i.total || 0), 0), [items]);
+  const tax      = useMemo(() => (subtotal * taxRate) / 100, [subtotal, taxRate]);
+  const total    = useMemo(() => subtotal + tax, [subtotal, tax]);
+  const itemCount= useMemo(() => items.filter(i => i.description?.trim?.() !== '').length, [items]);
+  const avgItem  = itemCount > 0 ? subtotal / itemCount : 0;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-primary-50 to-primary-100/50 px-6 py-4 border-b border-primary-200">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-lg bg-primary-600 flex items-center justify-center">
-              <Receipt className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Invoice Summary</h3>
-              <p className="text-sm text-gray-600">Breakdown of charges and taxes</p>
-            </div>
+    <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800">
+            <Receipt className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </div>
-          
-          {/* Tax Rate Badge */}
-          <div className="bg-white px-4 py-2 rounded-lg border border-primary-200 shadow-sm">
-            <span className="text-sm font-medium text-primary-700 flex items-center">
-              <Percent className="h-4 w-4 mr-1" />
-              VAT: {taxRate}%
-            </span>
+          <div>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">Invoice Summary</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">Charges and tax breakdown</p>
           </div>
         </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+          <Percent className="h-3 w-3" />
+          VAT {taxRate}%
+        </span>
       </div>
 
-      {/* Summary Content */}
+      {/* ── Body ── */}
       <div className="p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Column - Calculations */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+
+          {/* Left — calculation breakdown */}
           <div className="space-y-4">
-            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 flex items-center">
-                  <Calculator className="h-4 w-4 mr-2 text-gray-400" />
-                  Subtotal
-                </span>
-                <span className="font-medium text-gray-900">
-                  {formatCurrency(subtotal)}
-                </span>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 flex items-center">
-                  <Percent className="h-4 w-4 mr-2 text-gray-400" />
-                  VAT ({taxRate}%)
-                </span>
-                <span className="font-medium text-gray-900">
-                  {formatCurrency(taxAmount)}
-                </span>
-              </div>
-              
-              <div className="border-t border-gray-200 pt-3 mt-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-base font-semibold text-gray-900">
-                    Total Amount
+
+            {/* Line items */}
+            <div className="rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+              <div className="divide-y divide-gray-50 dark:divide-gray-800">
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <Calculator className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                    Subtotal
                   </span>
-                  <div className="text-right">
-                    <span className="text-2xl font-bold text-primary-600">
-                      {formatCurrency(totalAmount)}
-                    </span>
-                    <p className="text-xs text-gray-500 mt-1">KES</p>
-                  </div>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 tabular-nums">
+                    {formatCurrency(subtotal)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <Percent className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                    VAT ({taxRate}%)
+                  </span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 tabular-nums">
+                    {formatCurrency(tax)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/60 px-4 py-3.5">
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">Total</span>
+                  <span className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">
+                    {formatCurrency(total)}
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Quick Stats */}
+            {/* Mini stats */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-primary-50 rounded-lg p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <FileText className="h-4 w-4 text-primary-600" />
-                  <span className="text-xs text-primary-600 font-medium">Items</span>
+              <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/60 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <FileText className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  <span className="text-xs font-medium text-gray-400 dark:text-gray-500">Items</span>
                 </div>
-                <p className="text-xl font-bold text-primary-700">{itemCount}</p>
-                <p className="text-xs text-primary-600 mt-1">Total line items</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{itemCount}</p>
+                <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">line items</p>
               </div>
-              
-              <div className="bg-success-50 rounded-lg p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <TrendingUp className="h-4 w-4 text-success-600" />
-                  <span className="text-xs text-success-600 font-medium">Average</span>
+              <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/60 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <TrendingUp className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  <span className="text-xs font-medium text-gray-400 dark:text-gray-500">Avg</span>
                 </div>
-                <p className="text-xl font-bold text-success-700">
-                  {itemCount > 0 
-                    ? formatCurrency(subtotal / itemCount)
-                    : formatCurrency(0)
-                  }
-                </p>
-                <p className="text-xs text-success-600 mt-1">Per item</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">{formatCurrency(avgItem)}</p>
+                <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">per item</p>
               </div>
             </div>
           </div>
 
-          {/* Right Column - Summary Card */}
-          <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg p-6 text-white">
-            <h4 className="text-sm font-medium text-primary-100 mb-4">
-              Amount Due
-            </h4>
-            
-            <div className="space-y-4">
-              <div>
-                <span className="text-3xl font-bold">
-                  {formatCurrency(totalAmount)}
-                </span>
-                <p className="text-primary-100 text-sm mt-1">
-                  Including {formatCurrency(taxAmount)} VAT
-                </p>
-              </div>
-              
-              <div className="border-t border-primary-500 pt-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-primary-100">Issue Date:</span>
-                  <span className="font-medium">Today</span>
+          {/* Right — amount due card */}
+          <div className="flex flex-col justify-between rounded-2xl bg-gray-900 dark:bg-white p-6">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+                Amount Due
+              </p>
+              <p className="mt-3 text-4xl font-bold text-white dark:text-gray-900 tabular-nums">
+                {formatCurrency(total)}
+              </p>
+              <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
+                incl. {formatCurrency(tax)} VAT
+              </p>
+            </div>
+            <div className="mt-6 space-y-2.5 border-t border-white/10 dark:border-gray-200 pt-5">
+              {[
+                { label: 'Issue Date', value: 'Today' },
+                { label: 'Payment Due', value: '30 days from issue' },
+                { label: 'Currency', value: 'KES' },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400 dark:text-gray-500">{label}</span>
+                  <span className="font-medium text-white dark:text-gray-900">{value}</span>
                 </div>
-                <div className="flex justify-between text-sm mt-2">
-                  <span className="text-primary-100">Due Date:</span>
-                  <span className="font-medium">30 days from issue</span>
-                </div>
-              </div>
-
-              {/* Payment Terms Hint */}
-              <div className="mt-4 p-3 bg-primary-500/30 rounded-lg">
-                <p className="text-xs text-primary-100">
-                  ⚡ Payment terms: Net 30. A 2% discount for payments within 7 days.
-                </p>
-              </div>
+              ))}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Footer with Tax Information */}
-      <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-        <div className="flex items-start space-x-3">
-          <Info className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
-          <div className="text-xs text-gray-600">
-            <p className="font-medium mb-1">VAT Information:</p>
-            <p>
-              VAT is calculated at {taxRate}% based on your business settings. 
-              This amount represents the tax you will collect from your client 
-              and remit to the tax authorities.
-            </p>
-          </div>
-        </div>
+      {/* ── Footer ── */}
+      <div className="border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 px-6 py-3.5">
+        <p className="text-xs text-gray-400 dark:text-gray-500">
+          VAT at {taxRate}% is calculated on the subtotal and collected on behalf of the tax authority.
+        </p>
       </div>
     </div>
   );
