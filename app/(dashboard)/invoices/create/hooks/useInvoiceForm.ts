@@ -24,14 +24,15 @@ const invoiceSchema = z.object({
   status: z.enum(['draft', 'sent']).default('draft'),
 });
 
-export type InvoiceFormData = z.infer<typeof invoiceSchema>;
+export type InvoiceFormValues = z.input<typeof invoiceSchema>;
+export type InvoiceFormData = z.output<typeof invoiceSchema>;
 
 export const useInvoiceForm = () => {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<InvoiceFormData>({
+  const form = useForm<InvoiceFormValues, unknown, InvoiceFormData>({
     resolver: zodResolver(invoiceSchema),
     defaultValues: {
       business_id: '',

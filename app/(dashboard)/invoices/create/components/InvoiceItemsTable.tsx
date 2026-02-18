@@ -3,14 +3,14 @@
 import React from 'react';
 import { Trash2, Plus } from 'lucide-react';
 import { UseFormRegister, FieldErrors } from 'react-hook-form';
-import { InvoiceFormData } from './InvoiceForm';
+import { InvoiceFormValues } from './InvoiceForm';
 import { Input } from '@/components/ui/Input';
 import { formatCurrency } from '@/lib/utils';
 
 interface Props {
-  items: InvoiceFormData['items'];
-  register: UseFormRegister<InvoiceFormData>;
-  errors: FieldErrors<InvoiceFormData>;
+  items: InvoiceFormValues['items'];
+  register: UseFormRegister<InvoiceFormValues>;
+  errors: FieldErrors<InvoiceFormValues>;
   onCalculate: (index: number, quantity: number, unitPrice: number) => void;
   onAdd: () => void;
   onRemove: (index: number) => void;

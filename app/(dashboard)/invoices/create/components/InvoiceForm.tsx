@@ -31,7 +31,8 @@ const invoiceSchema = z.object({
   status: z.enum(['draft', 'sent']).default('draft'),
 });
 
-export type InvoiceFormData = z.infer<typeof invoiceSchema>;
+export type InvoiceFormValues = z.input<typeof invoiceSchema>;
+export type InvoiceFormData = z.output<typeof invoiceSchema>;
 
 // ── Section wrapper ───────────────────────────────────────────────────────────
 const Section = ({ icon: Icon, title, subtitle, children }: {
@@ -59,7 +60,7 @@ export const InvoiceForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
 
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<InvoiceFormData>({
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<InvoiceFormValues, unknown, InvoiceFormData>({
     resolver: zodResolver(invoiceSchema),
     defaultValues: {
       business_id: '',
