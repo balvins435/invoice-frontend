@@ -93,6 +93,7 @@ export interface Expense {
   amount: number;
   expense_date: string;
   tax_deductible: boolean;
+  notes?: string;
   created_at: string;
 }
 
