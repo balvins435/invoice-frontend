@@ -117,6 +117,39 @@ export interface MonthlyReport {
   expense_count: number;
 }
 
+export interface TaxSummaryByMonth {
+  month: string;
+  tax_collected: number;
+  tax_deductible: number;
+}
+
+export interface TaxSummary {
+  total_tax_collected: number;
+  total_tax_deductible: number;
+  net_tax_liability: number;
+  by_month: TaxSummaryByMonth[];
+}
+
+export interface ProfitLossBreakdownItem {
+  amount: number;
+  percentage: number;
+  source?: string;
+  category?: string;
+}
+
+export interface ProfitLossStatement {
+  revenue: {
+    total: number;
+    breakdown: Array<ProfitLossBreakdownItem & { source: string }>;
+  };
+  expenses: {
+    total: number;
+    breakdown: Array<ProfitLossBreakdownItem & { category: string }>;
+  };
+  net_profit: number;
+  profit_margin: number;
+}
+
 export interface DashboardStats {
   total_income: number;
   total_expenses: number;
