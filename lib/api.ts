@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 type TokenRefreshResponse = { access: string };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -14,18 +14,17 @@ const api = axios.create({
 
 // Request interceptor for adding auth token
 api.interceptors.request.use(
-  (config: AxiosRequestConfig) => {
+  (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('access_token');
     
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (token) {
+      config.headers.set('Authorization', `Bearer ${token}`);
     }
 
     const isFormDataRequest =
       typeof FormData !== 'undefined' && config.data instanceof FormData;
-    if (isFormDataRequest && config.headers) {
-      delete (config.headers as any)['Content-Type'];
-      delete (config.headers as any)['content-type'];
+    if (isFormDataRequest) {
+      config.headers.delete('Content-Type');
     }
     
     return config;
