@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/Input';
 import { ExpenseCategorySelect } from './ExpenseCategorySelect';
 import { cn } from '@/lib/utils';
 import { EXPENSE_CATEGORIES } from '@/types/expense';
+import type { ExpenseCategory } from '@/types/expense';
 import { useCreateExpense, useUpdateExpense } from '@/lib/hooks/useExpenses';
 import { Business } from '@/types';
 import toast from 'react-hot-toast';
@@ -77,6 +78,7 @@ export const ExpenseForm: React.FC<Props> = ({
   });
 
   const taxDeductible = watch('tax_deductible');
+  const selectedCategory = watch('category');
 
   const handleReceipt = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -156,7 +158,7 @@ export const ExpenseForm: React.FC<Props> = ({
           <ExpenseCategorySelect
             label="Category"
             required
-            value={watch('category')}
+            value={selectedCategory ? (selectedCategory as ExpenseCategory) : undefined}
             onChange={v => setValue('category', v)}
             error={errors.category?.message}
           />
