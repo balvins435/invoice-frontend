@@ -650,7 +650,7 @@ export default function BusinessPage() {
               type="number"
               min="0"
               max="100"
-              step="0.01"
+              step="0.1"
               value={formData.tax_rate}
               onChange={(e) => setFormData({ ...formData, tax_rate: parseFloat(e.target.value) || 0 })}
               required

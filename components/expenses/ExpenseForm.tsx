@@ -5,25 +5,17 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { Camera, Loader2 } from 'lucide-react';
-
-import { Button } from '@/components/ui/Button';
+import { Camera, Loader2, X, FileText, Building2, Calendar } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
+import { ExpenseCategorySelect } from './ExpenseCategorySelect';
 import { cn } from '@/lib/utils';
 import { EXPENSE_CATEGORIES } from '@/types/expense';
 import { useCreateExpense, useUpdateExpense } from '@/lib/hooks/useExpenses';
 import { Business } from '@/types';
+import toast from 'react-hot-toast';
 
-// Form validation schema
-const expenseSchema = z.object({
+// ── Schema ────────────────────────────────────────────────────────────────────
+const schema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
   category: z.string().min(1, 'Please select a category'),
   amount: z.number().min(0.01, 'Amount must be greater than 0'),
@@ -32,411 +24,249 @@ const expenseSchema = z.object({
   notes: z.string().optional(),
 });
 
-type ExpenseFormData = z.infer<typeof expenseSchema>;
+type FormData = z.infer<typeof schema>;
 
-interface ExpenseFormProps {
-  initialData?: ExpenseFormData;
+// ── Props ─────────────────────────────────────────────────────────────────────
+interface Props {
+  initialData?: FormData;
   expenseId?: number;
   onSuccess?: () => void;
   onCancel?: () => void;
   businesses?: Business[];
   selectedBusinessId?: number | null;
-  onBusinessChange?: (businessId: number | null) => void;
+  onBusinessChange?: (id: number | null) => void;
 }
 
-export const ExpenseForm: React.FC<ExpenseFormProps> = ({
-  initialData,
-  expenseId,
-  onSuccess,
-  onCancel,
-  businesses = [],
-  selectedBusinessId = null,
-  onBusinessChange,
+// ── Section wrapper ───────────────────────────────────────────────────────────
+const Section = ({ icon: Icon, title, subtitle, children }: {
+  icon: React.ElementType; title: string; subtitle?: string; children: React.ReactNode;
+}) => (
+  <div>
+    <div className="mb-4 flex items-center gap-3">
+      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800">
+        <Icon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-gray-900 dark:text-white">{title}</p>
+        {subtitle && <p className="text-xs text-gray-400 dark:text-gray-500">{subtitle}</p>}
+      </div>
+    </div>
+    {children}
+  </div>
+);
+
+// ── Component ─────────────────────────────────────────────────────────────────
+export const ExpenseForm: React.FC<Props> = ({
+  initialData, expenseId, onSuccess, onCancel, businesses = [],
+  selectedBusinessId, onBusinessChange,
 }) => {
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
-  const [date, setDate] = useState<Date>(initialData?.expense_date || new Date());
+  const [receipt, setReceipt]         = useState<File | null>(null);
+  const [preview, setPreview]         = useState<string | null>(null);
+  const [date, setDate]               = useState<Date>(initialData?.expense_date || new Date());
   const [businessError, setBusinessError] = useState<string | null>(null);
 
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm<ExpenseFormData>({
-    resolver: zodResolver(expenseSchema),
+  const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<FormData>({
+    resolver: zodResolver(schema),
     defaultValues: initialData || {
-      title: '',
-      category: '',
-      amount: 0,
-      expense_date: new Date(),
-      tax_deductible: true,
-      notes: '',
+      title: '', category: '', amount: 0, expense_date: new Date(),
+      tax_deductible: true, notes: '',
     },
   });
 
-  const selectedCategory = watch('category');
-  const isTaxDeductible = watch('tax_deductible');
+  const taxDeductible = watch('tax_deductible');
 
-  const handleReceiptUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleReceipt = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
-      setReceiptFile(file);
-      
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setReceiptPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setReceipt(file);
+      const r = new FileReader();
+      r.onloadend = () => setPreview(r.result as string);
+      r.readAsDataURL(file);
     }
   };
 
-  const onSubmit = async (data: ExpenseFormData) => {
+  const onSubmit = async (data: FormData) => {
     try {
       if (!expenseId && !selectedBusinessId) {
         setBusinessError('Please select a business');
         return;
       }
-
-      const formattedData = {
+      const payload = {
         ...data,
         business_id: selectedBusinessId || undefined,
         category: data.category as keyof typeof EXPENSE_CATEGORIES,
         expense_date: format(data.expense_date, 'yyyy-MM-dd'),
         amount: Number(data.amount),
-        receipt: receiptFile || undefined,
+        receipt: receipt || undefined,
       };
-
-      if (expenseId) {
-        await updateExpense.mutateAsync({ id: expenseId, data: formattedData });
-      } else {
-        await createExpense.mutateAsync(formattedData);
-      }
-      
+      if (expenseId) await updateExpense.mutateAsync({ id: expenseId, data: payload });
+      else await createExpense.mutateAsync(payload);
+      toast.success(expenseId ? 'Expense updated' : 'Expense created');
       onSuccess?.();
-    } catch (error) {
-      console.error('Failed to save expense:', error);
+    } catch (err) {
+      toast.error('Failed to save expense');
     }
   };
 
-  const formatAmount = (value: string) => {
-    // Remove non-numeric characters except decimal
-    const numeric = value.replace(/[^0-9.]/g, '');
-    
-    // Format with commas for thousands
-    if (numeric) {
-      const parts = numeric.split('.');
-      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-      return parts.join('.');
-    }
-    return '';
-  };
+  const labelCls = 'mb-1.5 block text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500';
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">
-            {expenseId ? 'Edit Expense' : 'Add New Expense'}
-          </h2>
-          <p className="text-muted-foreground">
-            {expenseId 
-              ? 'Update your expense details' 
-              : 'Record a new business expense'
-            }
-          </p>
-        </div>
-        {expenseId && (
-          <Badge variant={isTaxDeductible ? 'default' : 'secondary'}>
-            {isTaxDeductible ? 'Tax Deductible' : 'Non-Deductible'}
-          </Badge>
-        )}
-      </div>
+    <form id="expense-form" onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-8">
 
-      {/* Main Form */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Left Column */}
-        <Card className="md:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-lg">Expense Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!expenseId && (
-              <div className="space-y-2">
-                <label htmlFor="business_id" className="text-sm font-medium">
-                  Business *
-                </label>
-                <select
-                  id="business_id"
-                  value={selectedBusinessId ?? ''}
-                  onChange={(e) => {
-                    const value = e.target.value ? Number(e.target.value) : null;
-                    onBusinessChange?.(value);
-                    setBusinessError(null);
-                  }}
-                  className={cn(
-                    'flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm',
-                    'focus:border-primary-500 focus:outline-none',
-                    businessError && 'border-red-500'
-                  )}
-                >
-                  <option value="">Select business</option>
-                  {businesses.map((business) => (
-                    <option key={business.id} value={business.id}>
-                      {business.business_name}
-                    </option>
-                  ))}
-                </select>
-                {businessError && (
-                  <p className="text-sm text-red-500">{businessError}</p>
-                )}
-              </div>
-            )}
-
-            {/* Title */}
-            <div className="space-y-2">
-              <label htmlFor="title" className="text-sm font-medium">
-                Expense Title *
-              </label>
-              <Input
-                id="title"
-                {...register('title')}
-                placeholder="e.g., Office Rent, Internet Bill"
-                className={cn(errors.title && 'border-red-500')}
-              />
-              {errors.title && (
-                <p className="text-sm text-red-500">{errors.title.message}</p>
-              )}
-            </div>
-
-            {/* Category */}
-            <div className="space-y-2">
-              <label htmlFor="category" className="text-sm font-medium">
-                Category *
-              </label>
+      {/* ── Business selection (if creating) ── */}
+      {!expenseId && (
+        <Section icon={Building2} title="Business" subtitle="Which business is this expense for?">
+          <div>
+            <label className={labelCls}>Select Business *</label>
+            <div className="relative">
               <select
-                id="category"
-                {...register('category')}
+                value={selectedBusinessId ?? ''}
+                onChange={e => {
+                  const v = e.target.value ? Number(e.target.value) : null;
+                  onBusinessChange?.(v);
+                  setBusinessError(null);
+                }}
                 className={cn(
-                  'flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm',
-                  'focus:border-primary-500 focus:outline-none',
-                  errors.category && 'border-red-500'
+                  'w-full appearance-none rounded-xl border px-3 py-2 pr-8 text-sm transition-colors',
+                  'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100',
+                  'focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white',
+                  businessError && 'border-red-400 dark:border-red-600'
                 )}
               >
-                <option value="">Select a category</option>
-                {Object.entries(EXPENSE_CATEGORIES).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
+                <option value="">Choose a business</option>
+                {businesses.map(b => <option key={b.id} value={b.id}>{b.business_name}</option>)}
               </select>
-              {errors.category && (
-                <p className="text-sm text-red-500">{errors.category.message}</p>
-              )}
             </div>
+            {businessError && <p className="mt-1 text-xs text-red-500">{businessError}</p>}
+          </div>
+        </Section>
+      )}
 
-            {/* Amount */}
-            <div className="space-y-2">
-              <label htmlFor="amount" className="text-sm font-medium">
-                Amount *
+      <div className="border-t border-gray-100 dark:border-gray-800" />
+
+      {/* ── Expense details ── */}
+      <Section icon={FileText} title="Expense Details" subtitle="Core information about this expense">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <Input label="Expense Title *" {...register('title')} error={errors.title?.message} placeholder="e.g., Office Rent, Internet Bill" />
+          </div>
+          <ExpenseCategorySelect
+            label="Category"
+            required
+            value={watch('category')}
+            onChange={v => setValue('category', v)}
+            error={errors.category?.message}
+          />
+          <div>
+            <label className={labelCls}>Amount (KES) *</label>
+            <Input
+              type="number"
+              step="0.01"
+              {...register('amount', { valueAsNumber: true })}
+              error={errors.amount?.message}
+              placeholder="0.00"
+              leftIcon={<span className="text-xs text-gray-400 dark:text-gray-500">KES</span>}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Expense Date *</label>
+            <Input
+              type="date"
+              value={format(date, 'yyyy-MM-dd')}
+              onChange={e => {
+                const d = new Date(e.target.value);
+                if (!isNaN(d.getTime())) { setDate(d); setValue('expense_date', d); }
+              }}
+            />
+          </div>
+
+          {/* Tax deductible toggle */}
+          <div className="md:col-span-2 flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4">
+            <div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">Tax Deductible</p>
+              <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">Can be deducted from taxable income</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={taxDeductible}
+              onChange={e => setValue('tax_deductible', e.target.checked)}
+              className="h-4 w-4 shrink-0 cursor-pointer rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 accent-gray-900 dark:accent-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white"
+            />
+          </div>
+        </div>
+      </Section>
+
+      <div className="border-t border-gray-100 dark:border-gray-800" />
+
+      {/* ── Additional info ── */}
+      <Section icon={Calendar} title="Additional Info">
+        <div className="space-y-4">
+          {/* Notes */}
+          <div>
+            <label className={labelCls}>Notes</label>
+            <textarea
+              {...register('notes')}
+              placeholder="Add any additional details…"
+              className="min-h-[90px] w-full resize-none rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white transition-colors"
+            />
+          </div>
+
+          {/* Receipt */}
+          <div>
+            <label className={labelCls}>Receipt (Optional)</label>
+            {preview ? (
+              <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
+                <img src={preview} alt="Receipt" className="h-48 w-full object-contain bg-gray-50 dark:bg-gray-800" />
+                <button
+                  type="button"
+                  onClick={() => { setReceipt(null); setPreview(null); }}
+                  className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors shadow-sm"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="relative flex h-32 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <Camera className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Click to upload</p>
+                <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">PNG, JPG, PDF (max 5MB)</p>
+                <input type="file" accept="image/*,.pdf" onChange={handleReceipt} className="absolute inset-0 cursor-pointer opacity-0" />
               </label>
-              <div className="relative">
-                <span className="absolute left-3 top-2.5 text-muted-foreground">
-                  KES
-                </span>
-                <Input
-                  id="amount"
-                  type="text"
-                  {...register('amount', {
-                    setValueAs: (v) => {
-                      if (typeof v === 'string') {
-                        return parseFloat(v.replace(/,/g, '')) || 0;
-                      }
-                      return v;
-                    },
-                  })}
-                  placeholder="0.00"
-                  className={cn('pl-12', errors.amount && 'border-red-500')}
-                  onChange={(e) => {
-                    const formatted = formatAmount(e.target.value);
-                    e.target.value = formatted;
-                  }}
-                />
-              </div>
-              {errors.amount && (
-                <p className="text-sm text-red-500">{errors.amount.message}</p>
-              )}
-            </div>
-
-            {/* Date */}
-            <div className="space-y-2">
-              <label htmlFor="expense_date" className="text-sm font-medium">
-                Expense Date *
-              </label>
-              <Input
-                id="expense_date"
-                type="date"
-                value={format(date, 'yyyy-MM-dd')}
-                onChange={(e) => {
-                  const nextDate = new Date(e.target.value);
-                  if (!Number.isNaN(nextDate.getTime())) {
-                    setDate(nextDate);
-                    setValue('expense_date', nextDate);
-                  }
-                }}
-              />
-            </div>
-
-            {/* Tax Deductible Switch */}
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <label htmlFor="tax-deductible" className="text-sm font-medium">
-                  Tax Deductible
-                </label>
-                <p className="text-sm text-muted-foreground">
-                  This expense can be deducted from your taxable income
-                </p>
-              </div>
-              <input
-                id="tax-deductible"
-                type="checkbox"
-                checked={isTaxDeductible}
-                onChange={(e) => setValue('tax_deductible', e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Right Column */}
-        <Card className="md:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-lg">Additional Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Notes */}
-            <div className="space-y-2">
-              <label htmlFor="notes" className="text-sm font-medium">
-                Notes
-              </label>
-              <textarea
-                id="notes"
-                {...register('notes')}
-                placeholder="Add any additional details about this expense..."
-                className="min-h-[120px] w-full rounded-lg border border-gray-300 p-3 text-sm focus:border-primary-500 focus:outline-none"
-              />
-            </div>
-
-            {/* Receipt Upload */}
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Receipt (Optional)</p>
-              <div className="relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6">
-                {receiptPreview ? (
-                  <div className="relative w-full">
-                    <img
-                      src={receiptPreview}
-                      alt="Receipt preview"
-                      className="max-h-[200px] w-full rounded-lg object-contain"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      className="absolute right-2 top-2"
-                      onClick={() => {
-                        setReceiptFile(null);
-                        setReceiptPreview(null);
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    <Camera className="mb-2 h-8 w-8 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
-                      Drag & drop or click to upload
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      PNG, JPG, PDF (max 5MB)
-                    </p>
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={handleReceiptUpload}
-                      className="absolute inset-0 cursor-pointer opacity-0"
-                    />
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Category Tips */}
-            {selectedCategory && (
-              <div className="rounded-lg bg-blue-50 p-4 dark:bg-blue-950">
-                <h4 className="mb-2 text-sm font-medium text-blue-800 dark:text-blue-200">
-                  💡 Category Tip
-                </h4>
-                <p className="text-xs text-blue-700 dark:text-blue-300">
-                  {getCategoryTip(selectedCategory)}
-                </p>
-              </div>
             )}
-          </CardContent>
-          <CardFooter className="flex justify-end gap-3 border-t pt-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="min-w-[120px]"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : expenseId ? (
-                'Update Expense'
-              ) : (
-                'Save Expense'
-              )}
-            </Button>
-          </CardFooter>
-        </Card>
+          </div>
+        </div>
+      </Section>
+
+      {/* ── Actions ── */}
+      <div className="flex flex-col-reverse gap-3 border-t border-gray-100 dark:border-gray-800 pt-6 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={isSubmitting}
+          className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-5 py-2.5 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-50 transition-all shadow-sm"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Saving…
+            </>
+          ) : expenseId ? (
+            'Update Expense'
+          ) : (
+            'Save Expense'
+          )}
+        </button>
       </div>
     </form>
   );
 };
-
-// Helper function for category tips
-function getCategoryTip(category: string): string {
-  const tips: Record<string, string> = {
-    rent: 'Rent and utility expenses are typically 100% tax deductible for businesses.',
-    salaries: 'Employee salaries and wages are fully tax deductible when properly documented.',
-    supplies: 'Office supplies under KES 50,000 can be fully expensed in the current year.',
-    transport: 'Keep a log of business vs. personal use for vehicle expenses.',
-    airtime: 'Business communication expenses are fully tax deductible with receipts.',
-    marketing: 'Marketing and advertising costs are fully deductible business expenses.',
-    equipment: 'Equipment over KES 100,000 should be capitalized and depreciated.',
-    maintenance: 'Repairs and maintenance are fully deductible in the current year.',
-    professional: 'Legal and professional fees are 100% tax deductible.',
-    tax: 'Business licenses, permits, and certain taxes are deductible.',
-    inventory: 'Cost of goods sold is deductible when inventory is sold.',
-    other: 'Ensure you keep detailed receipts for audit purposes.',
-  };
-  
-  return tips[category] || 'Keep all receipts for tax purposes and audit trail.';
-}

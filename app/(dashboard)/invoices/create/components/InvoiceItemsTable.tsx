@@ -51,7 +51,7 @@ export const InvoiceItemsTable: React.FC<Props> = ({
           <div className="col-span-1 md:col-span-2">
             <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400 md:hidden">Quantity</label>
             <Input
-              type="number" step="0.01" min="0.01"
+              type="number" step="1" min="1"
               {...register(`items.${index}.quantity`, {
                 valueAsNumber: true,
                 onChange: (e) => onCalculate(index, parseFloat(e.target.value) || 0, item.unit_price),
@@ -66,7 +66,7 @@ export const InvoiceItemsTable: React.FC<Props> = ({
           <div className="col-span-1 md:col-span-2">
             <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400 md:hidden">Unit Price</label>
             <Input
-              type="number" step="0.01" min="0"
+              type="number" step="1" min="0"
               {...register(`items.${index}.unit_price`, {
                 valueAsNumber: true,
                 onChange: (e) => onCalculate(index, item.quantity, parseFloat(e.target.value) || 0),
