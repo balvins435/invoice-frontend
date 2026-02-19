@@ -1,0 +1,10 @@
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[context.production.environment]
+  NEXT_PUBLIC_API_URL = "https://invoice-backend-8feg.onrender.com/api"
