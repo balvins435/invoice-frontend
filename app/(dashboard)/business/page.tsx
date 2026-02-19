@@ -22,11 +22,9 @@ import { Navbar } from '@/components/Navbar';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { apiService } from '@/lib/api';
+import { API_ORIGIN } from '@/lib/config';
 import { Business } from '@/types';
 import toast from 'react-hot-toast';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-const API_ORIGIN = API_URL.replace(/\/api\/?$/, '');
 
 const getLogoUrl = (logo?: string | null) => {
   if (!logo) return null;
