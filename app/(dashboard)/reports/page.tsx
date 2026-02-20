@@ -21,6 +21,8 @@ import { MonthlyReport, TaxSummary, ProfitLossStatement } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import DatePicker from 'react-datepicker';
+import { Line, Doughnut } from 'react-chartjs-2';
+import 'chart.js/auto';
 import 'react-datepicker/dist/react-datepicker.css';
 
 export default function ReportsPage() {
@@ -135,6 +137,35 @@ export default function ReportsPage() {
     : '0.0';
 
   const isProfit = currentReport ? currentReport.net_profit >= 0 : true;
+  const monthlyTrendData = {
+    labels: monthlyReports.map((report) => report.month),
+    datasets: [
+      {
+        label: 'Income',
+        data: monthlyReports.map((report) => toNumber(report.total_income)),
+        borderColor: 'rgb(16, 185, 129)',
+        backgroundColor: 'rgba(16, 185, 129, 0.18)',
+        tension: 0.35,
+      },
+      {
+        label: 'Expenses',
+        data: monthlyReports.map((report) => toNumber(report.total_expenses)),
+        borderColor: 'rgb(239, 68, 68)',
+        backgroundColor: 'rgba(239, 68, 68, 0.16)',
+        tension: 0.35,
+      },
+    ],
+  };
+  const expenseBreakdownData = {
+    labels: profitLoss?.expenses.breakdown.map((item) => item.category) || [],
+    datasets: [
+      {
+        data: profitLoss?.expenses.breakdown.map((item) => item.amount) || [],
+        backgroundColor: ['#0f172a', '#334155', '#475569', '#64748b', '#94a3b8', '#cbd5e1'],
+        borderWidth: 0,
+      },
+    ],
+  };
 
   // ── Reusable select wrapper ──
   const SelectField = ({ label, value, onChange, children }: {
@@ -349,12 +380,26 @@ export default function ReportsPage() {
                 </div>
               </div>
 
-              {/* Chart placeholder */}
-              <div className="mx-6 mt-5 flex h-44 items-center justify-center rounded-xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                <div className="text-center">
-                  <BarChart3 className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600" />
-                  <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">Recharts integration</p>
-                </div>
+              <div className="mx-6 mt-5 h-56 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-3">
+                <Line
+                  data={monthlyTrendData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'bottom',
+                        labels: {
+                          boxWidth: 10,
+                          boxHeight: 10,
+                        },
+                      },
+                    },
+                    scales: {
+                      y: { beginAtZero: true },
+                    },
+                  }}
+                />
               </div>
 
               {/* Data rows */}
@@ -396,12 +441,30 @@ export default function ReportsPage() {
                 </div>
               </div>
 
-              {/* Chart placeholder */}
-              <div className="mx-6 mt-5 flex h-44 items-center justify-center rounded-xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                <div className="text-center">
-                  <PieChart className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600" />
-                  <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">Recharts integration</p>
-                </div>
+              <div className="mx-6 mt-5 h-56 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-3">
+                {profitLoss?.expenses.breakdown.length ? (
+                  <Doughnut
+                    data={expenseBreakdownData}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          position: 'bottom',
+                          labels: {
+                            boxWidth: 10,
+                            boxHeight: 10,
+                          },
+                        },
+                      },
+                      cutout: '62%',
+                    }}
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-xs text-gray-400 dark:text-gray-500">
+                    No expense data available
+                  </div>
+                )}
               </div>
 
               {/* Progress bars */}
