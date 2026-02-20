@@ -28,8 +28,6 @@ type PreferenceState = {
   email_marketing: boolean;
 };
 
-const SETTINGS_KEY = 'settings_preferences';
-
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
 
@@ -57,18 +55,11 @@ export default function SettingsPage() {
         const me = meResponse.data;
         setFullName(me.full_name || '');
         setEmail(me.email || '');
-
-        if (typeof window !== 'undefined') {
-          const stored = localStorage.getItem(SETTINGS_KEY);
-          if (stored) {
-            try {
-              const parsed = JSON.parse(stored) as PreferenceState;
-              setPreferences(parsed);
-            } catch {
-              // no-op
-            }
-          }
-        }
+        setPreferences({
+          email_invoice_updates: Boolean(me.email_invoice_updates),
+          email_weekly_summary: Boolean(me.email_weekly_summary),
+          email_marketing: Boolean(me.email_marketing),
+        });
       } catch {
         toast.error('Failed to load settings');
       } finally {
@@ -154,11 +145,25 @@ export default function SettingsPage() {
   };
 
   const updatePreference = (key: keyof PreferenceState) => {
+    const previous = preferences;
     const next = { ...preferences, [key]: !preferences[key] };
     setPreferences(next);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
-    }
+    const payload = {
+      full_name: fullName.trim() || undefined,
+      email_invoice_updates: next.email_invoice_updates,
+      email_weekly_summary: next.email_weekly_summary,
+      email_marketing: next.email_marketing,
+    };
+    apiService.auth.updateProfile(payload)
+      .then((response) => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(response.data));
+        }
+      })
+      .catch(() => {
+        setPreferences(previous);
+        toast.error('Failed to save notification preferences');
+      });
   };
 
   if (isBootstrapping) {

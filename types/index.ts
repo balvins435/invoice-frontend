@@ -3,6 +3,9 @@ export interface User {
   id: number;
   email: string;
   full_name: string;
+  email_invoice_updates?: boolean;
+  email_weekly_summary?: boolean;
+  email_marketing?: boolean;
   created_at: string;
 }
 
