@@ -24,10 +24,11 @@ import { Spinner } from '@/components/ui/Spinner';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
+  { name: 'Business', href: '/business', icon: Building },
   { name: 'Invoices', href: '/invoices', icon: FileText },
   { name: 'Expenses', href: '/expenses', icon: CreditCard },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
-  { name: 'Business', href: '/business', icon: Building },
+  
 ];
 
 export const Sidebar: React.FC = () => {
