@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Download,
   TrendingUp,
@@ -28,7 +28,6 @@ import 'react-datepicker/dist/react-datepicker.css';
 export default function ReportsPage() {
   const [monthlyReports, setMonthlyReports] = useState<MonthlyReport[]>([]);
   const [taxSummary, setTaxSummary] = useState<TaxSummary | null>(null);
-  const [profitLoss, setProfitLoss] = useState<ProfitLossStatement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
@@ -55,39 +54,6 @@ export default function ReportsPage() {
       ]);
       setMonthlyReports(Array.isArray(monthlyResponse.data) ? monthlyResponse.data : [monthlyResponse.data]);
       setTaxSummary(taxResponse.data);
-      const currentReport = Array.isArray(monthlyResponse.data) ? monthlyResponse.data[0] : monthlyResponse.data;
-      if (currentReport) {
-        const totalIncome = toNumber(currentReport.total_income);
-        const totalExpenses = toNumber(currentReport.total_expenses);
-        const deductibleExpenses = toNumber(currentReport.deductible_expenses);
-        const nonDeductibleExpenses = Math.max(totalExpenses - deductibleExpenses, 0);
-        const netProfit = toNumber(currentReport.net_profit);
-        setProfitLoss({
-          revenue: {
-            total: totalIncome,
-            breakdown: [{ source: 'Invoice Payments', amount: totalIncome, percentage: 100 }],
-          },
-          expenses: {
-            total: totalExpenses,
-            breakdown: [
-              {
-                category: 'Deductible Expenses',
-                amount: deductibleExpenses,
-                percentage: totalExpenses > 0 ? (deductibleExpenses / totalExpenses) * 100 : 0,
-              },
-              {
-                category: 'Other Expenses',
-                amount: nonDeductibleExpenses,
-                percentage: totalExpenses > 0 ? (nonDeductibleExpenses / totalExpenses) * 100 : 0,
-              },
-            ].filter((item) => item.amount > 0),
-          },
-          net_profit: netProfit,
-          profit_margin: totalIncome > 0
-            ? (netProfit / totalIncome) * 100
-            : 0,
-        });
-      }
     } catch {
       toast.error('Failed to load reports');
     } finally {
@@ -131,6 +97,40 @@ export default function ReportsPage() {
           expense_count: monthlyReports.reduce((sum, report) => sum + toNumber(report.expense_count), 0),
         }
       : null);
+
+  const profitLoss: ProfitLossStatement | null = useMemo(() => {
+    if (!currentReport) return null;
+
+    const totalIncome = toNumber(currentReport.total_income);
+    const totalExpenses = toNumber(currentReport.total_expenses);
+    const deductibleExpenses = toNumber(currentReport.deductible_expenses);
+    const nonDeductibleExpenses = Math.max(totalExpenses - deductibleExpenses, 0);
+    const netProfit = toNumber(currentReport.net_profit);
+
+    return {
+      revenue: {
+        total: totalIncome,
+        breakdown: [{ source: 'Invoice Payments', amount: totalIncome, percentage: 100 }],
+      },
+      expenses: {
+        total: totalExpenses,
+        breakdown: [
+          {
+            category: 'Deductible Expenses',
+            amount: deductibleExpenses,
+            percentage: totalExpenses > 0 ? (deductibleExpenses / totalExpenses) * 100 : 0,
+          },
+          {
+            category: 'Other Expenses',
+            amount: nonDeductibleExpenses,
+            percentage: totalExpenses > 0 ? (nonDeductibleExpenses / totalExpenses) * 100 : 0,
+          },
+        ].filter((item) => item.amount > 0),
+      },
+      net_profit: netProfit,
+      profit_margin: totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0,
+    };
+  }, [currentReport]);
 
   const profitMargin = currentReport && currentReport.total_income > 0
     ? ((currentReport.net_profit / currentReport.total_income) * 100).toFixed(1)
