@@ -140,6 +140,8 @@ export const apiService = {
     getTaxSummary: (params: any) => 
       api.get('/reports/tax-summary/', { params }),
     getDashboardStats: () => api.get('/reports/dashboard-stats/'),
+    downloadPDF: (params: any) =>
+      api.get('/reports/pdf/', { params, responseType: 'blob' }),
   },
 };
 

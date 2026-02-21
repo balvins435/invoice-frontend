@@ -78,7 +78,25 @@ export default function ReportsPage() {
     toast.success('Report exported successfully');
   };
 
-  const generatePDF = () => toast.success('Generating PDF report…');
+  const generatePDF = async () => {
+    const toastId = 'report-pdf';
+    try {
+      toast.loading('Generating PDF report…', { id: toastId });
+      const params = { year: selectedYear, ...(selectedMonth && { month: selectedMonth }) };
+      const res = await apiService.reports.downloadPDF(params);
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      const monthSuffix = selectedMonth ? `-${String(selectedMonth).padStart(2, '0')}` : '';
+      link.href = url;
+      link.setAttribute('download', `report-${selectedYear}${monthSuffix}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success('Report downloaded', { id: toastId });
+    } catch {
+      toast.error('Failed to download PDF', { id: toastId });
+    }
+  };
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
   const months = ['January', 'February', 'March', 'April', 'May', 'June',
