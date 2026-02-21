@@ -242,6 +242,51 @@ class AuthService {
     }
   }
 
+  async requestPasswordReset(email: string) {
+    try {
+      const response = await api.post('/password-reset/', { email });
+      return { success: true, message: response.data?.detail };
+    } catch (error: any) {
+      let errorMessage = 'Failed to send reset email.';
+      if (error.response) {
+        errorMessage = error.response.data?.detail ||
+                      error.response.data?.message ||
+                      error.response.data?.error ||
+                      `Server error: ${error.response.status}`;
+      } else if (error.request) {
+        errorMessage = 'Cannot connect to server. Please check if backend is running.';
+      } else {
+        errorMessage = error.message;
+      }
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  async confirmPasswordReset(uid: string, token: string, new_password: string, confirm_password: string) {
+    try {
+      const response = await api.post('/password-reset/confirm/', {
+        uid,
+        token,
+        new_password,
+        confirm_password,
+      });
+      return { success: true, message: response.data?.detail };
+    } catch (error: any) {
+      let errorMessage = 'Failed to reset password.';
+      if (error.response) {
+        errorMessage = error.response.data?.detail ||
+                      error.response.data?.message ||
+                      error.response.data?.error ||
+                      `Server error: ${error.response.status}`;
+      } else if (error.request) {
+        errorMessage = 'Cannot connect to server. Please check if backend is running.';
+      } else {
+        errorMessage = error.message;
+      }
+      return { success: false, error: errorMessage };
+    }
+  }
+
   clearAuth() {
     clearAuthTokens();
     if (typeof window !== 'undefined') {
