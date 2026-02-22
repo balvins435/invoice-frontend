@@ -93,8 +93,26 @@ export default function InvoicesPage() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch {
-      toast.error('Failed to download receipt');
+    } catch (error: unknown) {
+      let message = 'Failed to download receipt';
+      const response = (error as { response?: { data?: unknown; status?: number } })?.response;
+
+      if (response?.data instanceof Blob) {
+        const text = await response.data.text();
+        try {
+          const parsed = JSON.parse(text) as { error?: string; detail?: string };
+          message = parsed.error || parsed.detail || message;
+        } catch {
+          if (text.trim()) message = text.trim();
+        }
+      } else if (response?.data && typeof response.data === 'object') {
+        const parsed = response.data as { error?: string; detail?: string };
+        message = parsed.error || parsed.detail || message;
+      } else if (response?.status) {
+        message = `Failed to download receipt (HTTP ${response.status})`;
+      }
+
+      toast.error(message);
     }
   };
 
