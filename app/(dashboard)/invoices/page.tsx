@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Plus, Search, Filter, Download, Mail, Eye, Edit,
-  Trash2, FileText, ChevronDown, AlertTriangle, X, Receipt,
+  Trash2, FileText, ChevronDown, AlertTriangle, X, ReceiptText,
 } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { Input } from '@/components/ui/Input';
@@ -295,15 +295,16 @@ export default function InvoicesPage() {
                             ))}
                             <button
                               onClick={() => handleDownloadReceipt(invoice.id, invoice.receipt_number)}
-                              title={invoice.has_receipt ? 'Download Receipt' : 'Receipt available after payment'}
-                              disabled={!invoice.has_receipt}
-                              className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
-                                invoice.has_receipt
-                                  ? 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300'
-                                  : 'cursor-not-allowed text-gray-300 dark:text-gray-700'
+                              title={invoice.status === 'paid' ? 'Download Receipt' : 'Receipt available after payment'}
+                              disabled={invoice.status !== 'paid'}
+                              className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-medium transition-colors ${
+                                invoice.status === 'paid'
+                                  ? 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-950'
+                                  : 'cursor-not-allowed border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600'
                               }`}
                             >
-                              <Receipt className="h-4 w-4" />
+                              <ReceiptText className="h-3.5 w-3.5" />
+                              Receipt
                             </button>
                             {invoice.status !== 'paid' && (
                               <button
