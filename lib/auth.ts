@@ -244,7 +244,7 @@ class AuthService {
 
   async requestPasswordReset(email: string) {
     try {
-      const response = await api.post('/password-reset/', { email });
+      const response = await api.post('/password-reset/', { email }, { timeout: 30000 });
       return { success: true, message: response.data?.detail };
     } catch (error: any) {
       let errorMessage = 'Failed to send reset email.';
@@ -254,7 +254,9 @@ class AuthService {
                       error.response.data?.error ||
                       `Server error: ${error.response.status}`;
       } else if (error.request) {
-        errorMessage = 'Cannot connect to server. Please check if backend is running.';
+        errorMessage = error.code === 'ECONNABORTED'
+          ? 'Request timed out while sending reset email. Please try again.'
+          : 'Request could not be completed. Please try again.';
       } else {
         errorMessage = error.message;
       }
