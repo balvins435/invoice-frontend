@@ -65,6 +65,8 @@ export interface Invoice {
   tax_amount: number;
   total_amount: number;
   status: 'draft' | 'sent' | 'paid';
+  has_receipt?: boolean;
+  receipt_number?: string | null;
   created_at: string;
   items: InvoiceItem[];
 }

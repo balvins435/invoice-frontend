@@ -121,6 +121,8 @@ export const apiService = {
     sendEmail: (id: number) => api.post(`/invoice/${id}/send_email/`),
     downloadPDF: (id: number) => 
       api.get(`/invoice/${id}/pdf/`, { responseType: 'blob' }),
+    downloadReceipt: (id: number) =>
+      api.get(`/invoice/${id}/receipt/`, { responseType: 'blob' }),
   },
 
   // Expense endpoints

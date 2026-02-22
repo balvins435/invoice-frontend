@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Plus, Search, Filter, Download, Mail, Eye, Edit,
-  Trash2, FileText, ChevronDown, AlertTriangle, X,
+  Trash2, FileText, ChevronDown, AlertTriangle, X, Receipt,
 } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { Input } from '@/components/ui/Input';
@@ -82,6 +82,20 @@ export default function InvoicesPage() {
       link.href = url; link.setAttribute('download', `invoice-${id}.pdf`);
       document.body.appendChild(link); link.click(); link.remove();
     } catch { toast.error('Failed to download'); }
+  };
+  const handleDownloadReceipt = async (id: number, receiptNumber?: string | null) => {
+    try {
+      const res = await apiService.invoices.downloadReceipt(id);
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${receiptNumber || `receipt-${id}`}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      toast.error('Failed to download receipt');
+    }
   };
 
   const filtered = invoices.filter(inv =>
@@ -279,6 +293,18 @@ export default function InvoicesPage() {
                                 <Icon className="h-4 w-4" />
                               </button>
                             ))}
+                            <button
+                              onClick={() => handleDownloadReceipt(invoice.id, invoice.receipt_number)}
+                              title={invoice.has_receipt ? 'Download Receipt' : 'Receipt available after payment'}
+                              disabled={!invoice.has_receipt}
+                              className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
+                                invoice.has_receipt
+                                  ? 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300'
+                                  : 'cursor-not-allowed text-gray-300 dark:text-gray-700'
+                              }`}
+                            >
+                              <Receipt className="h-4 w-4" />
+                            </button>
                             {invoice.status !== 'paid' && (
                               <button
                                 onClick={() => handleMarkAsPaid(invoice.id)}
