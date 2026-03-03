@@ -24,6 +24,7 @@ import { Modal } from '@/components/ui/Modal';
 import { apiService } from '@/lib/api';
 import { API_ORIGIN } from '@/lib/config';
 import { Business } from '@/types';
+import { formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 const getLogoUrl = (logo?: string | null) => {
@@ -34,6 +35,9 @@ const getLogoUrl = (logo?: string | null) => {
 };
 
 export default function BusinessPage() {
+  const [allInvoices, setAllInvoices] = useState<Array<Record<string, unknown>>>([]);
+  const [allExpenses, setAllExpenses] = useState<Array<Record<string, unknown>>>([]);
+  const [isStatsLoading, setIsStatsLoading] = useState(false);
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,6 +58,46 @@ export default function BusinessPage() {
   });
 
   useEffect(() => { fetchBusinesses(); }, []);
+  useEffect(() => {
+    fetchFinancialData();
+  }, []);
+
+  const parseList = (payload: unknown): Array<Record<string, unknown>> => {
+    if (Array.isArray(payload)) return payload as Array<Record<string, unknown>>;
+    if (payload && typeof payload === 'object' && 'results' in payload) {
+      const results = (payload as { results?: unknown }).results;
+      if (Array.isArray(results)) return results as Array<Record<string, unknown>>;
+    }
+    return [];
+  };
+
+  const toNumber = (value: unknown): number => {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+    if (typeof value === 'string') {
+      const parsed = Number.parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+  };
+
+  const getBusinessId = (record: Record<string, unknown>): number =>
+    toNumber(record.business_id ?? record.business);
+
+  const fetchFinancialData = async () => {
+    try {
+      setIsStatsLoading(true);
+      const [invoiceResponse, expenseResponse] = await Promise.all([
+        apiService.invoices.getAll(),
+        apiService.expenses.getAll(),
+      ]);
+      setAllInvoices(parseList(invoiceResponse.data));
+      setAllExpenses(parseList(expenseResponse.data));
+    } catch {
+      toast.error('Failed to load financial summary');
+    } finally {
+      setIsStatsLoading(false);
+    }
+  };
 
   const fetchBusinesses = async () => {
     try {
@@ -163,6 +207,24 @@ export default function BusinessPage() {
     formData.email.trim() !== '' &&
     formData.tax_rate >= 0 &&
     formData.tax_rate <= 100;
+
+  const businessInvoices = selectedBusiness
+    ? allInvoices.filter((invoice) => getBusinessId(invoice) === selectedBusiness.id)
+    : [];
+
+  const businessExpenses = selectedBusiness
+    ? allExpenses.filter((expense) => getBusinessId(expense) === selectedBusiness.id)
+    : [];
+
+  const totalInvoices = businessInvoices.length;
+  const totalIncome = businessInvoices
+    .filter((invoice) => String(invoice.status) === 'paid')
+    .reduce((sum, invoice) => sum + toNumber(invoice.total_amount), 0);
+  const totalExpenses = businessExpenses
+    .reduce((sum, expense) => sum + toNumber(expense.total_amount ?? expense.amount), 0);
+  const taxCollected = businessInvoices
+    .filter((invoice) => String(invoice.status) === 'paid')
+    .reduce((sum, invoice) => sum + toNumber(invoice.tax_amount), 0);
 
   return (
     <>
@@ -537,19 +599,27 @@ export default function BusinessPage() {
                     <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                       <div className="rounded-2xl border border-blue-100 dark:border-blue-900/40 bg-blue-50 dark:bg-blue-950/30 p-5">
                         <p className="text-xs font-medium text-blue-500 dark:text-blue-400">Total Invoices</p>
-                        <p className="mt-2 text-2xl font-bold text-blue-700 dark:text-blue-300">—</p>
+                        <p className="mt-2 text-2xl font-bold text-blue-700 dark:text-blue-300">
+                          {isStatsLoading ? '...' : totalInvoices.toLocaleString()}
+                        </p>
                       </div>
                       <div className="rounded-2xl border border-emerald-100 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/30 p-5">
                         <p className="text-xs font-medium text-emerald-500 dark:text-emerald-400">Total Income</p>
-                        <p className="mt-2 text-2xl font-bold text-emerald-700 dark:text-emerald-300">—</p>
+                        <p className="mt-2 text-2xl font-bold text-emerald-700 dark:text-emerald-300">
+                          {isStatsLoading ? '...' : formatCurrency(totalIncome)}
+                        </p>
                       </div>
                       <div className="rounded-2xl border border-red-100 dark:border-red-900/40 bg-red-50 dark:bg-red-950/30 p-5">
                         <p className="text-xs font-medium text-red-500 dark:text-red-400">Total Expenses</p>
-                        <p className="mt-2 text-2xl font-bold text-red-700 dark:text-red-300">—</p>
+                        <p className="mt-2 text-2xl font-bold text-red-700 dark:text-red-300">
+                          {isStatsLoading ? '...' : formatCurrency(totalExpenses)}
+                        </p>
                       </div>
                       <div className="rounded-2xl border border-violet-100 dark:border-violet-900/40 bg-violet-50 dark:bg-violet-950/30 p-5">
                         <p className="text-xs font-medium text-violet-500 dark:text-violet-400">Tax Collected</p>
-                        <p className="mt-2 text-2xl font-bold text-violet-700 dark:text-violet-300">—</p>
+                        <p className="mt-2 text-2xl font-bold text-violet-700 dark:text-violet-300">
+                          {isStatsLoading ? '...' : formatCurrency(taxCollected)}
+                        </p>
                       </div>
                     </div>
                   )}
