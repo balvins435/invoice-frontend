@@ -33,10 +33,7 @@ export default function DashboardLayout({
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950">
-        <div className="text-center">
-          <Spinner size="lg" className="mb-4" />
-          <p className="text-gray-600 dark:text-slate-400">Loading your dashboard...</p>
-        </div>
+        <Spinner size="lg" />
       </div>
     );
   }
