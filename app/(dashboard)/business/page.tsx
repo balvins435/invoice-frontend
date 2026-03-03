@@ -596,31 +596,50 @@ export default function BusinessPage() {
 
                   {/* Stats — view mode only */}
                   {!isEditing && (
-                    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                      <div className="rounded-2xl border border-blue-100 dark:border-blue-900/40 bg-blue-50 dark:bg-blue-950/30 p-5">
-                        <p className="text-xs font-medium text-blue-500 dark:text-blue-400">Total Invoices</p>
-                        <p className="mt-2 text-2xl font-bold text-blue-700 dark:text-blue-300">
-                          {isStatsLoading ? '...' : totalInvoices.toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="rounded-2xl border border-emerald-100 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/30 p-5">
-                        <p className="text-xs font-medium text-emerald-500 dark:text-emerald-400">Total Income</p>
-                        <p className="mt-2 text-2xl font-bold text-emerald-700 dark:text-emerald-300">
-                          {isStatsLoading ? '...' : formatCurrency(totalIncome)}
-                        </p>
-                      </div>
-                      <div className="rounded-2xl border border-red-100 dark:border-red-900/40 bg-red-50 dark:bg-red-950/30 p-5">
-                        <p className="text-xs font-medium text-red-500 dark:text-red-400">Total Expenses</p>
-                        <p className="mt-2 text-2xl font-bold text-red-700 dark:text-red-300">
-                          {isStatsLoading ? '...' : formatCurrency(totalExpenses)}
-                        </p>
-                      </div>
-                      <div className="rounded-2xl border border-violet-100 dark:border-violet-900/40 bg-violet-50 dark:bg-violet-950/30 p-5">
-                        <p className="text-xs font-medium text-violet-500 dark:text-violet-400">Tax Collected</p>
-                        <p className="mt-2 text-2xl font-bold text-violet-700 dark:text-violet-300">
-                          {isStatsLoading ? '...' : formatCurrency(taxCollected)}
-                        </p>
-                      </div>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                      {[
+                        {
+                          label: 'Total Invoices',
+                          value: isStatsLoading ? '...' : totalInvoices.toLocaleString(),
+                          cardClass: 'border-blue-100 dark:border-blue-900/40 bg-blue-50 dark:bg-blue-950/30',
+                          labelClass: 'text-blue-500 dark:text-blue-400',
+                          valueClass: 'text-blue-700 dark:text-blue-300',
+                        },
+                        {
+                          label: 'Total Income',
+                          value: isStatsLoading ? '...' : formatCurrency(totalIncome),
+                          cardClass: 'border-emerald-100 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/30',
+                          labelClass: 'text-emerald-500 dark:text-emerald-400',
+                          valueClass: 'text-emerald-700 dark:text-emerald-300',
+                        },
+                        {
+                          label: 'Total Expenses',
+                          value: isStatsLoading ? '...' : formatCurrency(totalExpenses),
+                          cardClass: 'border-red-100 dark:border-red-900/40 bg-red-50 dark:bg-red-950/30',
+                          labelClass: 'text-red-500 dark:text-red-400',
+                          valueClass: 'text-red-700 dark:text-red-300',
+                        },
+                        {
+                          label: 'Tax Collected',
+                          value: isStatsLoading ? '...' : formatCurrency(taxCollected),
+                          cardClass: 'border-violet-100 dark:border-violet-900/40 bg-violet-50 dark:bg-violet-950/30',
+                          labelClass: 'text-violet-500 dark:text-violet-400',
+                          valueClass: 'text-violet-700 dark:text-violet-300',
+                        },
+                      ].map((item) => (
+                        <div
+                          key={item.label}
+                          className={`min-w-0 overflow-hidden rounded-2xl border p-5 ${item.cardClass}`}
+                        >
+                          <p className={`text-xs font-medium ${item.labelClass}`}>{item.label}</p>
+                          <p
+                            className={`mt-2 truncate text-lg font-bold leading-tight sm:text-xl xl:text-2xl ${item.valueClass}`}
+                            title={item.value}
+                          >
+                            {item.value}
+                          </p>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
