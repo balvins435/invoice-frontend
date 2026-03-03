@@ -15,20 +15,20 @@ export const Navbar: React.FC<NavbarProps> = ({ title, subtitle }) => {
 
   return (
     <header className="lg:ml-64 bg-white border-b border-gray-200 dark:bg-slate-900 dark:border-slate-700">
-      <div className="px-6 py-4">
+      <div className="pl-16 pr-4 py-4 sm:px-6">
         <div className="flex items-center justify-between">
           {/* Left side */}
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{title}</h1>
+          <div className="min-w-0">
+            <h1 className="truncate text-xl sm:text-2xl font-bold text-gray-900 dark:text-slate-100">{title}</h1>
             {subtitle && (
-              <p className="text-sm text-gray-500 mt-1 dark:text-slate-400">{subtitle}</p>
+              <p className="mt-1 hidden text-sm text-gray-500 dark:text-slate-400 sm:block">{subtitle}</p>
             )}
           </div>
 
           {/* Right side */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             {/* Search */}
-            <div className="relative">
+            <div className="relative hidden md:block">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-slate-500" />
               <input
                 type="search"

@@ -58,7 +58,10 @@ export const Sidebar: React.FC = () => {
       {/* Mobile menu button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-40 p-2 rounded-lg bg-white shadow-md border border-gray-200 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+        aria-label="Open navigation menu"
+        className={`lg:hidden fixed top-3 left-3 z-50 p-2 rounded-lg bg-white shadow-md border border-gray-200 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 transition-opacity ${
+          isOpen ? 'pointer-events-none opacity-0' : 'opacity-100'
+        }`}
       >
         <Menu className="h-5 w-5" />
       </button>
@@ -73,7 +76,7 @@ export const Sidebar: React.FC = () => {
 
       {/* Sidebar */}
       <aside className={`
-        fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-40 dark:bg-slate-900 dark:border-slate-700
+        fixed top-0 left-0 flex h-full w-64 flex-col bg-white border-r border-gray-200 z-40 dark:bg-slate-900 dark:border-slate-700
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
@@ -112,7 +115,7 @@ export const Sidebar: React.FC = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="px-3 py-6">
+        <nav className="flex-1 overflow-y-auto px-3 py-6">
           <ul className="space-y-1">
             {navigation.map((item) => {
               const Icon = item.icon;
@@ -153,7 +156,7 @@ export const Sidebar: React.FC = () => {
         </nav>
 
         {/* Bottom section */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 dark:border-slate-700">
+        <div className="p-4 border-t border-gray-200 dark:border-slate-700">
           <div className="space-y-2">
             <button
               onClick={toggleTheme}

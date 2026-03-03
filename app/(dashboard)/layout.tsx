@@ -46,9 +46,9 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
+    <div className="min-h-screen overflow-x-hidden bg-gray-50 dark:bg-slate-950">
       <Sidebar />
-      <div className="lg:ml-64">
+      <div className="pt-16 lg:ml-64 lg:pt-0">
         {children}
       </div>
     </div>
