@@ -22,6 +22,28 @@ const toNumber = (v: unknown): number => {
   return 0;
 };
 
+const getApiErrorMessage = (error: unknown, fallback: string): string => {
+  if (typeof error !== 'object' || error === null || !('response' in error)) return fallback;
+  const response = (error as { response?: { data?: unknown } }).response;
+  const data = response?.data;
+  if (data && typeof data === 'object') {
+    const payload = data as {
+      error?: string;
+      detail?: string;
+      error_message?: string;
+      provider_response?: { error?: string };
+    };
+    return (
+      payload.error ||
+      payload.detail ||
+      payload.error_message ||
+      payload.provider_response?.error ||
+      fallback
+    );
+  }
+  return fallback;
+};
+
 const StatusBadge = ({ status }: { status: string }) => {
   const map: Record<string, string> = {
     paid:    'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
@@ -74,6 +96,77 @@ export default function InvoicesPage() {
 
   const handleMarkAsPaid  = async (id: number) => { try { await apiService.invoices.markAsPaid(id);  toast.success('Marked as paid');   fetchInvoices(); } catch { toast.error('Failed to update'); } };
   const handleSendEmail   = async (id: number) => { try { await apiService.invoices.sendEmail(id);   toast.success('Invoice sent');      } catch { toast.error('Failed to send');   } };
+  const handlePayWithMpesa = async (invoice: Invoice) => {
+    if (invoice.status === 'paid') {
+      toast.error('Invoice is already paid');
+      return;
+    }
+
+    const phoneNumber = window.prompt(`Enter M-Pesa phone for ${invoice.invoice_number}:`, '');
+    if (!phoneNumber?.trim()) return;
+
+    const amountInput = window.prompt(
+      `Enter amount for ${invoice.invoice_number}:`,
+      String(invoice.total_amount)
+    );
+    if (amountInput === null) return;
+
+    try {
+      await apiService.payments.initiateStkPush({
+        invoice_id: invoice.id,
+        phone_number: phoneNumber.trim(),
+        ...(amountInput.trim() ? { amount: amountInput.trim() } : {}),
+      });
+      toast.success('STK push initiated');
+      fetchInvoices();
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, 'Failed to initiate STK push'));
+    }
+  };
+
+  const handleSendWhatsApp = async (invoice: Invoice) => {
+    const phoneNumber = window.prompt(`Enter WhatsApp phone for ${invoice.invoice_number}:`, '');
+    if (!phoneNumber?.trim()) return;
+
+    const customMessage = window.prompt(
+      'Optional custom message (leave blank to use default):',
+      ''
+    );
+    if (customMessage === null) return;
+
+    try {
+      await apiService.messaging.sendInvoiceWhatsApp({
+        invoice_id: invoice.id,
+        phone_number: phoneNumber.trim(),
+        ...(customMessage.trim() ? { message: customMessage.trim() } : {}),
+      });
+      toast.success('WhatsApp invoice sent');
+      fetchInvoices();
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, 'Failed to send WhatsApp message'));
+    }
+  };
+
+  const handleSubmitEtims = async (invoice: Invoice) => {
+    if (invoice.tax_invoice_number) {
+      toast.success(`Already synced: ${invoice.tax_invoice_number}`);
+      return;
+    }
+
+    try {
+      const res = await apiService.tax.submitInvoice({ invoice_id: invoice.id });
+      const taxInvoiceNumber = (res.data as { tax_invoice_number?: string })?.tax_invoice_number;
+      toast.success(
+        taxInvoiceNumber
+          ? `Submitted to eTIMS: ${taxInvoiceNumber}`
+          : 'Invoice submitted to eTIMS'
+      );
+      fetchInvoices();
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, 'Failed to submit invoice to eTIMS'));
+    }
+  };
+
   const handleDownloadPDF = async (id: number) => {
     try {
       const res = await apiService.invoices.downloadPDF(id);
@@ -206,7 +299,10 @@ export default function InvoicesPage() {
                     <div className="relative">
                       <select
                         value={filters.status || ''}
-                        onChange={(e) => setFilters({ ...filters, status: e.target.value as any })}
+                        onChange={(e) => {
+                          const nextStatus = e.target.value as '' | 'draft' | 'sent' | 'paid';
+                          setFilters({ ...filters, status: nextStatus || undefined });
+                        }}
                         className="w-full appearance-none rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 pr-8 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white transition-colors"
                       >
                         <option value="">All</option>
@@ -323,6 +419,34 @@ export default function InvoicesPage() {
                             >
                               <ReceiptText className="h-3.5 w-3.5" />
                               Receipt
+                            </button>
+                            <button
+                              onClick={() => handlePayWithMpesa(invoice)}
+                              disabled={invoice.status === 'paid'}
+                              className={`rounded-lg border px-2 py-1 text-xs font-medium transition-colors ${
+                                invoice.status === 'paid'
+                                  ? 'cursor-not-allowed border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600'
+                                  : 'border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-950'
+                              }`}
+                            >
+                              Pay M-Pesa
+                            </button>
+                            <button
+                              onClick={() => handleSendWhatsApp(invoice)}
+                              className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/40 px-2 py-1 text-xs font-medium text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-950 transition-colors"
+                            >
+                              Send WhatsApp
+                            </button>
+                            <button
+                              onClick={() => handleSubmitEtims(invoice)}
+                              disabled={Boolean(invoice.tax_invoice_number)}
+                              className={`rounded-lg border px-2 py-1 text-xs font-medium transition-colors ${
+                                invoice.tax_invoice_number
+                                  ? 'cursor-not-allowed border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600'
+                                  : 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950'
+                              }`}
+                            >
+                              {invoice.tax_invoice_number ? 'eTIMS Synced' : 'Submit eTIMS'}
                             </button>
                             {invoice.status !== 'paid' && (
                               <button
