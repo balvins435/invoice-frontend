@@ -55,7 +55,8 @@ export interface InvoiceItem {
 
 export interface Invoice {
   id: number;
-  business: number;
+  business?: number;
+  business_id?: number;
   invoice_number: string;
   client_name: string;
   client_email: string;
@@ -64,6 +65,8 @@ export interface Invoice {
   subtotal: number;
   tax_amount: number;
   total_amount: number;
+  tax_invoice_number?: string;
+  etims_synced_at?: string | null;
   status: 'draft' | 'sent' | 'paid';
   has_receipt?: boolean;
   receipt_number?: string | null;
@@ -180,6 +183,58 @@ export interface PaginatedResponse<T> {
   next: string | null;
   previous: string | null;
   results: T[];
+}
+
+// Payments
+export interface PaymentTransaction {
+  id: number;
+  reference: string;
+  business: number;
+  invoice: number;
+  invoice_number?: string;
+  phone_number: string;
+  amount: number | string;
+  currency: string;
+  status: 'pending' | 'completed' | 'failed';
+  merchant_request_id?: string;
+  checkout_request_id?: string;
+  mpesa_receipt_number?: string;
+  result_code?: string;
+  result_description?: string;
+  paid_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Messaging
+export interface WhatsAppMessage {
+  id: number;
+  business: number;
+  invoice: number;
+  invoice_number?: string;
+  phone_number: string;
+  message_text: string;
+  invoice_link: string;
+  delivery_status: 'pending' | 'sent' | 'failed';
+  provider_message_id?: string;
+  error_message?: string;
+  sent_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Tax
+export interface TaxSubmission {
+  id: number;
+  business: number;
+  invoice: number;
+  invoice_number?: string;
+  status: 'pending' | 'submitted' | 'failed';
+  tax_invoice_number?: string;
+  error_message?: string;
+  submitted_at?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 // Form Validation Types

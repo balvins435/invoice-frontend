@@ -135,6 +135,31 @@ export const apiService = {
     getCategories: () => api.get('/expenses/categories/'),
   },
 
+  // Payments endpoints
+  payments: {
+    getTransactions: (params?: any) => api.get('/payments/transactions/', { params }),
+    getTransactionById: (id: number) => api.get(`/payments/transactions/${id}/`),
+    initiateStkPush: (data: { invoice_id: number; phone_number: string; amount?: string | number }) =>
+      api.post('/payments/transactions/initiate-stk/', data),
+    confirmTransaction: (
+      id: number,
+      data: { success: boolean; result_code?: string; result_description?: string; mpesa_receipt_number?: string }
+    ) => api.post(`/payments/transactions/${id}/confirm/`, data),
+  },
+
+  // Messaging endpoints
+  messaging: {
+    getWhatsAppMessages: (params?: any) => api.get('/messaging/whatsapp/', { params }),
+    sendInvoiceWhatsApp: (data: { invoice_id: number; phone_number: string; message?: string }) =>
+      api.post('/messaging/whatsapp/send-invoice/', data),
+  },
+
+  // Tax endpoints
+  tax: {
+    getSubmissions: (params?: any) => api.get('/tax/submissions/', { params }),
+    submitInvoice: (data: { invoice_id: number }) => api.post('/tax/submissions/submit-invoice/', data),
+  },
+
   // Report endpoints
   reports: {
     getMonthlyReport: (params: any) => 
