@@ -56,6 +56,7 @@ export default function BusinessPage() {
     phone: '',
     address: '',
     tax_rate: 16.0,
+    logo_shape: 'rect',
   });
 
   useEffect(() => { fetchBusinesses(); }, []);
@@ -114,8 +115,10 @@ export default function BusinessPage() {
           phone: businessesData[0].phone,
           address: businessesData[0].address,
           tax_rate: businessesData[0].tax_rate,
+          logo_shape: businessesData[0].logo_shape || 'rect',
         });
         setLogoPreview(getLogoUrl(businessesData[0].logo));
+        setLogoShape((businessesData[0].logo_shape as 'rect' | 'circle') || 'rect');
       }
     } catch {
       toast.error('Failed to load businesses');
@@ -134,8 +137,10 @@ export default function BusinessPage() {
       phone: business.phone,
       address: business.address,
       tax_rate: business.tax_rate,
+      logo_shape: business.logo_shape || 'rect',
     });
     setLogoPreview(getLogoUrl(business.logo));
+    setLogoShape((business.logo_shape as 'rect' | 'circle') || 'rect');
     setLogoFile(null);
   };
 
@@ -199,7 +204,7 @@ export default function BusinessPage() {
   };
 
   const resetForm = () => {
-    setFormData({ business_name: '', email: '', phone: '', address: '', tax_rate: 16.0 });
+    setFormData({ business_name: '', email: '', phone: '', address: '', tax_rate: 16.0, logo_shape: 'rect' });
     setLogoFile(null);
     setLogoPreview(null);
     setLogoShape('rect');
@@ -306,7 +311,9 @@ export default function BusinessPage() {
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <div className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border ${
+                          <div className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden border ${
+                            business.logo_shape === 'circle' ? 'rounded-full' : 'rounded-xl'
+                          } ${
                               isSelected
                                 ? 'border-white/20 dark:border-gray-900/20 bg-white/10 dark:bg-gray-900/10'
                                 : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'
@@ -315,7 +322,7 @@ export default function BusinessPage() {
                                 <img
                                   src={getLogoUrl(business.logo) || ''}
                                   alt={business.business_name}
-                                  className="h-full w-full object-contain p-1"
+                                  className={`h-full w-full ${business.logo_shape === 'circle' ? 'object-cover' : 'object-contain p-1'}`}
                                 />
                               ) : (
                                 <span className={`text-sm font-bold ${
@@ -439,7 +446,10 @@ export default function BusinessPage() {
                         <div className="flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300">
                           <button
                             type="button"
-                            onClick={() => setLogoShape('rect')}
+                            onClick={() => {
+                              setLogoShape('rect');
+                              setFormData((prev) => ({ ...prev, logo_shape: 'rect' }));
+                            }}
                             className={`rounded-lg px-2 py-1 ${
                               logoShape === 'rect'
                                 ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
@@ -450,7 +460,10 @@ export default function BusinessPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => setLogoShape('circle')}
+                            onClick={() => {
+                              setLogoShape('circle');
+                              setFormData((prev) => ({ ...prev, logo_shape: 'circle' }));
+                            }}
                             className={`rounded-lg px-2 py-1 ${
                               logoShape === 'circle'
                                 ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
@@ -742,7 +755,10 @@ export default function BusinessPage() {
                 <div className="mb-2 inline-flex items-center gap-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                   <button
                     type="button"
-                    onClick={() => setLogoShape('rect')}
+                    onClick={() => {
+                      setLogoShape('rect');
+                      setFormData((prev) => ({ ...prev, logo_shape: 'rect' }));
+                    }}
                     className={`rounded-lg px-2 py-1 ${
                       logoShape === 'rect'
                         ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
@@ -753,7 +769,10 @@ export default function BusinessPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setLogoShape('circle')}
+                    onClick={() => {
+                      setLogoShape('circle');
+                      setFormData((prev) => ({ ...prev, logo_shape: 'circle' }));
+                    }}
                     className={`rounded-lg px-2 py-1 ${
                       logoShape === 'circle'
                         ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'

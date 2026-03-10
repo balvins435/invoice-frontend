@@ -371,7 +371,7 @@ export default function ReportsPage() {
                       },
                     },
                     scales: {
-                      y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,0.2)' } },
+                      y: { beginAtZero: true, grid: { color: 'rgba(34, 119, 238, 0.2)' } },
                       x: { grid: { display: false } },
                     },
                   }}

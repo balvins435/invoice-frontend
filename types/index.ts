@@ -40,6 +40,7 @@ export interface Business {
   phone: string;
   address: string;
   logo: string | null;
+  logo_shape?: 'rect' | 'circle';
   tax_rate: number;
   created_at: string;
 }
