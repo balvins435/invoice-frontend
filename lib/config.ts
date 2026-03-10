@@ -1,5 +1,5 @@
 const DEFAULT_LOCAL_API_URL = 'http://localhost:8000/api';
-const DEFAULT_PROD_API_URL = 'https://invoice-backend-8feg.onrender.com/api';
+const DEFAULT_PROD_API_URL = 'https://invoice-backend-7dbw.onrender.com/api';
 
 const sanitizeApiUrl = (url: string): string => {
   const cleaned = (url || '').trim().replace(/\/+$/, '');
