@@ -46,6 +46,7 @@ export default function BusinessPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoShape, setLogoShape] = useState<'rect' | 'circle'>('rect');
   const editLogoInputRef = useRef<HTMLInputElement | null>(null);
   const createLogoInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -126,6 +127,7 @@ export default function BusinessPage() {
   const handleSelectBusiness = (business: Business) => {
     setSelectedBusiness(business);
     setIsEditing(false);
+    setLogoShape('rect');
     setFormData({
       business_name: business.business_name,
       email: business.email,
@@ -200,6 +202,7 @@ export default function BusinessPage() {
     setFormData({ business_name: '', email: '', phone: '', address: '', tax_rate: 16.0 });
     setLogoFile(null);
     setLogoPreview(null);
+    setLogoShape('rect');
   };
 
   const isFormValid = () =>
@@ -383,9 +386,17 @@ export default function BusinessPage() {
                     <div className="flex items-start justify-between gap-4 p-6">
 
                       <div className="flex items-center gap-5">
-                        <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                        <div
+                          className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 ${
+                            logoShape === 'circle' ? 'rounded-full' : 'rounded-2xl'
+                          }`}
+                        >
                           {logoPreview ? (
-                            <img src={logoPreview} alt="Logo" className="h-full w-full object-contain p-2" />
+                            <img
+                              src={logoPreview}
+                              alt="Logo"
+                              className={`h-full w-full ${logoShape === 'circle' ? 'object-cover' : 'object-contain p-2'}`}
+                            />
                           ) : (
                             <span className="text-2xl font-bold text-gray-300 dark:text-gray-600">
                               {selectedBusiness.business_name.charAt(0).toUpperCase()}
@@ -421,6 +432,33 @@ export default function BusinessPage() {
                               VAT {selectedBusiness.tax_rate}%
                             </span>
                           </div>
+                        </div>
+                      </div>
+
+                      <div className="flex shrink-0 flex-col items-end gap-2">
+                        <div className="flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300">
+                          <button
+                            type="button"
+                            onClick={() => setLogoShape('rect')}
+                            className={`rounded-lg px-2 py-1 ${
+                              logoShape === 'rect'
+                                ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                                : 'text-gray-600 dark:text-gray-300'
+                            }`}
+                          >
+                            Rect
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setLogoShape('circle')}
+                            className={`rounded-lg px-2 py-1 ${
+                              logoShape === 'circle'
+                                ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                                : 'text-gray-600 dark:text-gray-300'
+                            }`}
+                          >
+                            Circle
+                          </button>
                         </div>
                       </div>
 
@@ -685,14 +723,46 @@ export default function BusinessPage() {
               Business Logo (Optional)
             </p>
             <div className="flex items-center gap-5">
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 transition-colors hover:border-gray-400 dark:hover:border-gray-500">
+              <div
+                className={`flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 transition-colors hover:border-gray-400 dark:hover:border-gray-500 ${
+                  logoShape === 'circle' ? 'rounded-full' : 'rounded-2xl'
+                }`}
+              >
                 {logoPreview ? (
-                  <img src={logoPreview} alt="Logo preview" className="h-full w-full object-contain p-2" />
+                  <img
+                    src={logoPreview}
+                    alt="Logo preview"
+                    className={`h-full w-full ${logoShape === 'circle' ? 'object-cover' : 'object-contain p-2'}`}
+                  />
                 ) : (
                   <ImageIcon className="h-7 w-7 text-gray-300 dark:text-gray-600" />
                 )}
               </div>
               <div>
+                <div className="mb-2 inline-flex items-center gap-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                  <button
+                    type="button"
+                    onClick={() => setLogoShape('rect')}
+                    className={`rounded-lg px-2 py-1 ${
+                      logoShape === 'rect'
+                        ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                        : 'text-gray-600 dark:text-gray-300'
+                    }`}
+                  >
+                    Rect
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLogoShape('circle')}
+                    className={`rounded-lg px-2 py-1 ${
+                      logoShape === 'circle'
+                        ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                        : 'text-gray-600 dark:text-gray-300'
+                    }`}
+                  >
+                    Circle
+                  </button>
+                </div>
                 <input ref={createLogoInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
                 <button
                   type="button"
