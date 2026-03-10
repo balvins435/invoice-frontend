@@ -183,7 +183,7 @@ export default function ReportsPage() {
     datasets: [
       {
         data: profitLoss?.expenses.breakdown.map((item) => item.amount) || [],
-        backgroundColor: ['#0f172a', '#334155', '#475569', '#64748b', '#94a3b8', '#cbd5e1'],
+        backgroundColor: ['#10b981', '#ef4444'],
         borderWidth: 0,
       },
     ],
@@ -371,7 +371,7 @@ export default function ReportsPage() {
                       },
                     },
                     scales: {
-                      y: { beginAtZero: true, grid: { color: 'rgba(34, 119, 238, 0.2)' } },
+                      y: { beginAtZero: true, grid: { color: 'rgba(2, 247, 255, 0.2)' } },
                       x: { grid: { display: false } },
                     },
                   }}
