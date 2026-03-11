@@ -10,6 +10,7 @@ import { Mail, Lock, Loader2, ArrowRight, BarChart3, FileText, Building2 } from 
 import toast from 'react-hot-toast';
 import { Input } from '@/components/ui/Input';
 import { authService } from '@/lib/auth';
+import { API_ORIGIN } from '@/lib/config';
 
 // ── Schema ──────────────────────────────────────────────────────────────────
 const loginSchema = z.object({
@@ -69,6 +70,12 @@ export default function LoginPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+// Handles social login by redirecting to the appropriate OAuth endpoint based on the selected provider.
+  const handleSocialLogin = (provider: 'google-oauth2' | 'azuread-oauth2') => {
+    if (typeof window === 'undefined') return;
+    const base = API_ORIGIN.replace(/\/+$/, '');
+    window.location.href = `${base}/api/oauth/login/${provider}/`;
   };
 
   return (
@@ -232,12 +239,13 @@ export default function LoginPage() {
           {/* Social buttons */}
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: 'Google', logo: 'G' },
-              { label: 'Microsoft', logo: 'M' },
-            ].map(({ label, logo }) => (
+              { label: 'Google', logo: 'G', provider: 'google-oauth2' as const },
+              { label: 'Microsoft', logo: 'M', provider: 'azuread-oauth2' as const },
+            ].map(({ label, logo, provider }) => (
               <button
                 key={label}
                 type="button"
+                onClick={() => handleSocialLogin(provider)}
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 <span className="text-xs font-bold text-gray-500 dark:text-gray-400">{logo}</span>
