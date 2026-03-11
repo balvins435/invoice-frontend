@@ -15,6 +15,7 @@ export default function SocialCallbackPage() {
       access: searchParams.get('access'),
       refresh: searchParams.get('refresh'),
       provider: searchParams.get('provider'),
+      isNew: searchParams.get('is_new'),
       error: searchParams.get('error'),
     };
   }, [searchParams]);
@@ -37,7 +38,11 @@ export default function SocialCallbackPage() {
       try {
         const userResponse = await api.get('/me/');
         localStorage.setItem('user', JSON.stringify(userResponse.data));
-        router.replace('/dashboard');
+        if (params.isNew === '1') {
+          router.replace('/onboarding');
+        } else {
+          router.replace('/dashboard');
+        }
       } catch (err) {
         setError('Failed to load your profile. Please try again.');
       }

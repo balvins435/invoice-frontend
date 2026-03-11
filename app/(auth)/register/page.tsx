@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -13,7 +13,14 @@ import {
 import toast from 'react-hot-toast';
 import { Input } from '@/components/ui/Input';
 import { authService } from '@/lib/auth';
-import { API_ORIGIN } from '@/lib/config';
+import api from '@/lib/api';
+
+type SocialProvider = {
+  id: string;
+  label: string;
+  slug: string;
+  login_url: string;
+};
 
 // ── Schema ───────────────────────────────────────────────────────────────────
 const registerSchema = z.object({
@@ -72,6 +79,9 @@ const Rule = ({ met, label }: { met: boolean; label: string }) => (
 export default function RegisterPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [providers, setProviders] = useState<SocialProvider[]>([]);
+  const [providersLoading, setProvidersLoading] = useState(true);
+  const [redirectingProvider, setRedirectingProvider] = useState<SocialProvider | null>(null);
 
   const {
     register,
@@ -110,11 +120,39 @@ export default function RegisterPage() {
       setIsLoading(false);
     }
   };
-// Handles social login by redirecting to the appropriate OAuth endpoint based on the selected provider.
-  const handleSocialLogin = (provider: 'google-oauth2' | 'azuread-oauth2'): void => {
+
+  useEffect(() => {
+    let mounted = true;
+    const loadProviders = async () => {
+      try {
+        const response = await api.get('/social/providers/');
+        const list = response.data?.providers ?? [];
+        if (mounted) {
+          setProviders(list);
+        }
+      } catch {
+        if (mounted) {
+          setProviders([]);
+        }
+      } finally {
+        if (mounted) {
+          setProvidersLoading(false);
+        }
+      }
+    };
+
+    loadProviders();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const socialButtons = useMemo(() => providers, [providers]);
+
+  const handleSocialLogin = (provider: SocialProvider): void => {
     if (typeof window === 'undefined') return;
-    const base = API_ORIGIN.replace(/\/+$/, '');
-    window.location.href = `${base}/api/oauth/login/${provider}/`;
+    setRedirectingProvider(provider);
+    window.location.href = provider.login_url;
   };
 
   return (
@@ -386,21 +424,53 @@ export default function RegisterPage() {
 
           {/* Social */}
           <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: 'Google', logo: 'G', provider: 'google-oauth2' as const },
-              { label: 'Microsoft', logo: 'M', provider: 'azuread-oauth2' as const },
-            ].map(({ label, logo, provider }) => (
+            {providersLoading && (
+              <>
+                <button
+                  type="button"
+                  disabled
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500"
+                >
+                  Loading…
+                </button>
+                <button
+                  type="button"
+                  disabled
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500"
+                >
+                  Loading…
+                </button>
+              </>
+            )}
+
+            {!providersLoading && socialButtons.length === 0 && (
+              <div className="col-span-2 rounded-xl border border-dashed border-gray-200 dark:border-gray-800 px-4 py-3 text-center text-xs text-gray-400 dark:text-gray-500">
+                Social sign-in is not configured yet.
+              </div>
+            )}
+
+            {!providersLoading && socialButtons.map((provider) => (
               <button
-                key={label}
+                key={provider.id}
                 type="button"
                 onClick={() => handleSocialLogin(provider)}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                disabled={!!redirectingProvider}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <span className="text-xs font-bold text-gray-500 dark:text-gray-400">{logo}</span>
-                {label}
+                <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                  {provider.label[0]}
+                </span>
+                {provider.label}
               </button>
             ))}
           </div>
+
+          {redirectingProvider && (
+            <div className="mt-3 flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Continuing with {redirectingProvider.label}…
+            </div>
+          )}
 
           {/* Bottom note */}
           <p className="mt-6 text-center text-xs text-gray-400 dark:text-gray-600">
