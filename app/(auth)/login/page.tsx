@@ -50,6 +50,7 @@ const features = [
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
   const [providers, setProviders] = useState<SocialProvider[]>([]);
   const [providersLoading, setProvidersLoading] = useState(true);
   const [redirectingProvider, setRedirectingProvider] = useState<SocialProvider | null>(null);
@@ -330,9 +331,17 @@ export default function LoginPage() {
               Don't have an account?{' '}
               <Link
                 href="/register"
-                className="font-semibold text-gray-900 dark:text-white hover:underline underline-offset-2 transition-colors"
+                onClick={() => setIsSwitching(true)}
+                className="inline-flex items-center gap-2 font-semibold text-gray-900 dark:text-white hover:underline underline-offset-2 transition-colors"
               >
-                Sign up free
+                {isSwitching ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Switching…
+                  </>
+                ) : (
+                  'Sign up free'
+                )}
               </Link>
             </p>
             <p className="text-xs text-gray-400 dark:text-gray-600">

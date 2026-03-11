@@ -79,6 +79,7 @@ const Rule = ({ met, label }: { met: boolean; label: string }) => (
 export default function RegisterPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
   const [providers, setProviders] = useState<SocialProvider[]>([]);
   const [providersLoading, setProvidersLoading] = useState(true);
   const [redirectingProvider, setRedirectingProvider] = useState<SocialProvider | null>(null);
@@ -257,9 +258,17 @@ export default function RegisterPage() {
               Already have one?{' '}
               <Link
                 href="/login"
-                className="font-semibold text-gray-900 dark:text-white hover:underline underline-offset-2 transition-colors"
+                onClick={() => setIsSwitching(true)}
+                className="inline-flex items-center gap-2 font-semibold text-gray-900 dark:text-white hover:underline underline-offset-2 transition-colors"
               >
-                Sign in
+                {isSwitching ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Switching…
+                  </>
+                ) : (
+                  'Sign in'
+                )}
               </Link>
             </p>
           </div>
