@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Receipt, Percent, Calculator, TrendingUp, FileText } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
@@ -9,12 +9,63 @@ interface Props {
   taxRate: number;
 }
 
+const useFitText = (text: string, sizes: number[]) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const textRef = useRef<HTMLParagraphElement | null>(null);
+  const [sizeIndex, setSizeIndex] = useState(0);
+  const [allowWrap, setAllowWrap] = useState(false);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const textEl = textRef.current;
+    if (!container || !textEl) return;
+
+    const measure = () => {
+      if (!container || !textEl) return;
+
+      let chosenIndex = sizes.length - 1;
+      let fits = false;
+
+      for (let i = 0; i < sizes.length; i += 1) {
+        textEl.style.fontSize = `${sizes[i]}px`;
+        textEl.style.whiteSpace = 'nowrap';
+        if (textEl.scrollWidth <= container.clientWidth) {
+          chosenIndex = i;
+          fits = true;
+          break;
+        }
+      }
+
+      setSizeIndex(chosenIndex);
+      setAllowWrap(!fits);
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [text, sizes]);
+
+  return {
+    containerRef,
+    textRef,
+    size: sizes[sizeIndex] ?? sizes[sizes.length - 1],
+    allowWrap,
+  };
+};
+
 export const InvoiceSummary: React.FC<Props> = ({ items, taxRate }) => {
   const subtotal = useMemo(() => items.reduce((s, i) => s + (i.total || 0), 0), [items]);
   const tax      = useMemo(() => (subtotal * taxRate) / 100, [subtotal, taxRate]);
   const total    = useMemo(() => subtotal + tax, [subtotal, tax]);
   const itemCount= useMemo(() => items.filter(i => i.description?.trim?.() !== '').length, [items]);
   const avgItem  = itemCount > 0 ? subtotal / itemCount : 0;
+  const totalText = formatCurrency(total);
+  const avgText = formatCurrency(avgItem);
+  // 4xl, 3xl, 2xl in px (36, 30, 24)
+  const totalFit = useFitText(totalText, [36, 30, 24]);
+  // lg, base, sm in px (18, 16, 14)
+  const avgFit = useFitText(avgText, [18, 16, 14]);
 
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
@@ -88,9 +139,18 @@ export const InvoiceSummary: React.FC<Props> = ({ items, taxRate }) => {
                   <TrendingUp className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   <span className="text-xs font-medium text-gray-400 dark:text-gray-500">Avg</span>
                 </div>
-                <p className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white tabular-nums leading-tight break-words">
-                  {formatCurrency(avgItem)}
-                </p>
+                <div ref={avgFit.containerRef} className="min-w-0">
+                  <p
+                    ref={avgFit.textRef}
+                    className={[
+                      'font-bold text-gray-900 dark:text-white tabular-nums leading-tight',
+                      avgFit.allowWrap ? 'break-words' : 'whitespace-nowrap',
+                    ].join(' ')}
+                    style={{ fontSize: avgFit.size }}
+                  >
+                    {avgText}
+                  </p>
+                </div>
                 <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">per item</p>
               </div>
             </div>
@@ -102,9 +162,18 @@ export const InvoiceSummary: React.FC<Props> = ({ items, taxRate }) => {
               <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
                 Amount Due
               </p>
-              <p className="mt-3 text-3xl sm:text-4xl font-bold text-white dark:text-gray-900 tabular-nums leading-tight break-words">
-                {formatCurrency(total)}
-              </p>
+              <div ref={totalFit.containerRef} className="min-w-0 mt-3">
+                <p
+                  ref={totalFit.textRef}
+                  className={[
+                    'font-bold text-white dark:text-gray-900 tabular-nums leading-tight',
+                    totalFit.allowWrap ? 'break-words' : 'whitespace-nowrap',
+                  ].join(' ')}
+                  style={{ fontSize: totalFit.size }}
+                >
+                  {totalText}
+                </p>
+              </div>
               <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
                 incl. {formatCurrency(tax)} VAT
               </p>
