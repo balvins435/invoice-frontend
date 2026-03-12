@@ -2,8 +2,9 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, ShieldAlert } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 import api, { setAuthTokens } from '@/lib/api';
+import { Spinner } from '@/components/ui/Spinner';
 
 export default function SocialCallbackPage() {
   const router = useRouter();
@@ -75,7 +76,7 @@ export default function SocialCallbackPage() {
           </div>
         ) : (
           <div className="flex items-center gap-3">
-            <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
+            <Spinner size={20} className="text-gray-500" />
             <p className="text-sm text-gray-600 dark:text-gray-300">
               Completing {params.provider ? `${params.provider} ` : ''}sign-in…
             </p>

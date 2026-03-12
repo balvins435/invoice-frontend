@@ -83,24 +83,26 @@ export const InvoiceSummary: React.FC<Props> = ({ items, taxRate }) => {
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">{itemCount}</p>
                 <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">line items</p>
               </div>
-              <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/60 p-4">
+              <div className="min-w-0 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/60 p-4">
                 <div className="flex items-center justify-between mb-2">
                   <TrendingUp className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   <span className="text-xs font-medium text-gray-400 dark:text-gray-500">Avg</span>
                 </div>
-                <p className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">{formatCurrency(avgItem)}</p>
+                <p className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white tabular-nums leading-tight break-words">
+                  {formatCurrency(avgItem)}
+                </p>
                 <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">per item</p>
               </div>
             </div>
           </div>
 
           {/* Right — amount due card */}
-          <div className="flex flex-col justify-between rounded-2xl bg-gray-900 dark:bg-white p-6">
+          <div className="min-w-0 flex flex-col justify-between rounded-2xl bg-gray-900 dark:bg-white p-6">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
                 Amount Due
               </p>
-              <p className="mt-3 text-4xl font-bold text-white dark:text-gray-900 tabular-nums">
+              <p className="mt-3 text-3xl sm:text-4xl font-bold text-white dark:text-gray-900 tabular-nums leading-tight break-words">
                 {formatCurrency(total)}
               </p>
               <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">

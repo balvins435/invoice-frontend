@@ -56,6 +56,17 @@ export const InvoiceItemsTable: React.FC<Props> = ({
                 valueAsNumber: true,
                 onChange: (e) => onCalculate(index, parseFloat(e.target.value) || 0, item.unit_price),
               })}
+              onFocus={(e) => {
+                if (e.target.value === '0') {
+                  e.target.value = '';
+                }
+              }}
+              onBlur={(e) => {
+                if (e.target.value === '') {
+                  e.target.value = '1';
+                  onCalculate(index, 1, item.unit_price);
+                }
+              }}
               placeholder="1"
               className="text-right"
               error={errors.items?.[index]?.quantity?.message}
@@ -71,6 +82,17 @@ export const InvoiceItemsTable: React.FC<Props> = ({
                 valueAsNumber: true,
                 onChange: (e) => onCalculate(index, item.quantity, parseFloat(e.target.value) || 0),
               })}
+              onFocus={(e) => {
+                if (e.target.value === '0' || e.target.value === '0.00') {
+                  e.target.value = '';
+                }
+              }}
+              onBlur={(e) => {
+                if (e.target.value === '') {
+                  e.target.value = '0';
+                  onCalculate(index, item.quantity, 0);
+                }
+              }}
               placeholder="0.00"
               className="text-right"
               leftIcon={<span className="text-xs text-gray-400 dark:text-gray-500">KES</span>}

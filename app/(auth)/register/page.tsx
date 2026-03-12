@@ -7,13 +7,14 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
-  Mail, Lock, User, Loader2, ArrowRight, BarChart3,
+  Mail, Lock, User, ArrowRight, BarChart3,
   Check, X, ShieldCheck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Input } from '@/components/ui/Input';
 import { authService } from '@/lib/auth';
 import api from '@/lib/api';
+import { Spinner } from '@/components/ui/Spinner';
 
 type SocialProvider = {
   id: string;
@@ -263,7 +264,7 @@ export default function RegisterPage() {
               >
                 {isSwitching ? (
                   <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <Spinner size={14} />
                     Switching…
                   </>
                 ) : (
@@ -407,7 +408,7 @@ export default function RegisterPage() {
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Spinner size={16} />
                   Creating account…
                 </>
               ) : (
@@ -476,7 +477,7 @@ export default function RegisterPage() {
 
           {redirectingProvider && (
             <div className="mt-3 flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Spinner size={14} />
               Continuing with {redirectingProvider.label}…
             </div>
           )}

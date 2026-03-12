@@ -6,11 +6,12 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Mail, Lock, Loader2, ArrowRight, BarChart3, FileText, Building2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight, BarChart3, FileText, Building2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Input } from '@/components/ui/Input';
 import { authService } from '@/lib/auth';
 import api from '@/lib/api';
+import { Spinner } from '@/components/ui/Spinner';
 
 type SocialProvider = {
   id: string;
@@ -251,7 +252,7 @@ export default function LoginPage() {
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Spinner size={16} />
                   Signing in…
                 </>
               ) : (
@@ -320,7 +321,7 @@ export default function LoginPage() {
 
           {redirectingProvider && (
             <div className="mt-3 flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Spinner size={14} />
               Continuing with {redirectingProvider.label}…
             </div>
           )}
@@ -336,7 +337,7 @@ export default function LoginPage() {
               >
                 {isSwitching ? (
                   <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <Spinner size={14} />
                     Switching…
                   </>
                 ) : (
