@@ -33,7 +33,7 @@ export default function DashboardLayout({
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950">
-        <Spinner size="lg" />
+        <Spinner size={32} />
       </div>
     );
   }
