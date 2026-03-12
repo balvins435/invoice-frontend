@@ -4,7 +4,7 @@ export default function DashboardLoading() {
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center gap-3">
-        <Spinner size="md" />
+        <Spinner size={20} />
         <p className="text-sm text-gray-600 dark:text-slate-400">Loading page...</p>
       </div>
 
