@@ -59,6 +59,7 @@ export const InvoiceItemsTable: React.FC<Props> = ({
               onFocus={(e) => {
                 if (e.target.value === '0') {
                   e.target.value = '';
+                  e.target.dispatchEvent(new Event('input', { bubbles: true }));
                 }
               }}
               onBlur={(e) => {
@@ -85,6 +86,7 @@ export const InvoiceItemsTable: React.FC<Props> = ({
               onFocus={(e) => {
                 if (e.target.value === '0' || e.target.value === '0.00') {
                   e.target.value = '';
+                  e.target.dispatchEvent(new Event('input', { bubbles: true }));
                 }
               }}
               onBlur={(e) => {
