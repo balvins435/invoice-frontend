@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ShieldAlert } from 'lucide-react';
 import api, { setAuthTokens } from '@/lib/api';
 import { Spinner } from '@/components/ui/Spinner';
 
-export default function SocialCallbackPage() {
+const SocialCallbackInner = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -84,5 +84,24 @@ export default function SocialCallbackPage() {
         )}
       </div>
     </div>
+  );
+};
+
+export default function SocialCallbackPage() {
+  return (
+    <Suspense
+      fallback={(
+        <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950 px-6">
+          <div className="w-full max-w-md rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
+            <div className="flex items-center gap-3">
+              <Spinner size="md" />
+              <p className="text-sm text-gray-600 dark:text-gray-300">Loading…</p>
+            </div>
+          </div>
+        </div>
+      )}
+    >
+      <SocialCallbackInner />
+    </Suspense>
   );
 }
