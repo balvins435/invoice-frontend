@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -13,15 +13,7 @@ import {
 import toast from 'react-hot-toast';
 import { Input } from '@/components/ui/Input';
 import { authService } from '@/lib/auth';
-import api from '@/lib/api';
 import { Spinner } from '@/components/ui/Spinner';
-
-type SocialProvider = {
-  id: string;
-  label: string;
-  slug: string;
-  login_url: string;
-};
 
 // ── Schema ───────────────────────────────────────────────────────────────────
 const registerSchema = z.object({
@@ -81,9 +73,6 @@ export default function RegisterPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
-  const [providers, setProviders] = useState<SocialProvider[]>([]);
-  const [providersLoading, setProvidersLoading] = useState(true);
-  const [redirectingProvider, setRedirectingProvider] = useState<SocialProvider | null>(null);
 
   const {
     register,
@@ -123,39 +112,6 @@ export default function RegisterPage() {
     }
   };
 
-  useEffect(() => {
-    let mounted = true;
-    const loadProviders = async () => {
-      try {
-        const response = await api.get('/social/providers/');
-        const list = response.data?.providers ?? [];
-        if (mounted) {
-          setProviders(list);
-        }
-      } catch {
-        if (mounted) {
-          setProviders([]);
-        }
-      } finally {
-        if (mounted) {
-          setProvidersLoading(false);
-        }
-      }
-    };
-
-    loadProviders();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const socialButtons = useMemo(() => providers, [providers]);
-
-  const handleSocialLogin = (provider: SocialProvider): void => {
-    if (typeof window === 'undefined') return;
-    setRedirectingProvider(provider);
-    window.location.href = provider.login_url;
-  };
 
   return (
     <div className="flex min-h-screen bg-white dark:bg-gray-950 transition-colors duration-200">
@@ -419,68 +375,6 @@ export default function RegisterPage() {
               )}
             </button>
           </form>
-
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-100 dark:border-gray-800" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-white dark:bg-gray-950 px-3 text-xs font-medium text-gray-400 dark:text-gray-500">
-                or sign up with
-              </span>
-            </div>
-          </div>
-
-          {/* Social */}
-          <div className="grid grid-cols-2 gap-3">
-            {providersLoading && (
-              <>
-                <button
-                  type="button"
-                  disabled
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500"
-                >
-                  Loading…
-                </button>
-                <button
-                  type="button"
-                  disabled
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 px-4 py-2.5 text-sm font-medium text-gray-400 dark:text-gray-500"
-                >
-                  Loading…
-                </button>
-              </>
-            )}
-
-            {!providersLoading && socialButtons.length === 0 && (
-              <div className="col-span-2 rounded-xl border border-dashed border-gray-200 dark:border-gray-800 px-4 py-3 text-center text-xs text-gray-400 dark:text-gray-500">
-                Social sign-in is not configured yet.
-              </div>
-            )}
-
-            {!providersLoading && socialButtons.map((provider) => (
-              <button
-                key={provider.id}
-                type="button"
-                onClick={() => handleSocialLogin(provider)}
-                disabled={!!redirectingProvider}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
-                  {provider.label[0]}
-                </span>
-                {provider.label}
-              </button>
-            ))}
-          </div>
-
-          {redirectingProvider && (
-            <div className="mt-3 flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <Spinner size={14} />
-              Continuing with {redirectingProvider.label}…
-            </div>
-          )}
 
           {/* Bottom note */}
           <p className="mt-6 text-center text-xs text-gray-400 dark:text-gray-600">
