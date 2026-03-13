@@ -47,6 +47,8 @@ export default function BusinessPage() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoShape, setLogoShape] = useState<'rect' | 'circle'>('rect');
+  const [logoPreviewFailed, setLogoPreviewFailed] = useState(false);
+  const [failedLogoIds, setFailedLogoIds] = useState<Set<number>>(new Set());
   const editLogoInputRef = useRef<HTMLInputElement | null>(null);
   const createLogoInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -119,6 +121,7 @@ export default function BusinessPage() {
         });
         setLogoPreview(getLogoUrl(businessesData[0].logo));
         setLogoShape((businessesData[0].logo_shape as 'rect' | 'circle') || 'rect');
+        setLogoPreviewFailed(false);
       }
     } catch {
       toast.error('Failed to load businesses');
@@ -141,6 +144,7 @@ export default function BusinessPage() {
     });
     setLogoPreview(getLogoUrl(business.logo));
     setLogoShape((business.logo_shape as 'rect' | 'circle') || 'rect');
+    setLogoPreviewFailed(false);
     setLogoFile(null);
   };
 
@@ -149,7 +153,10 @@ export default function BusinessPage() {
     if (file) {
       setLogoFile(file);
       const reader = new FileReader();
-      reader.onloadend = () => setLogoPreview(reader.result as string);
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+        setLogoPreviewFailed(false);
+      };
       reader.readAsDataURL(file);
     }
     e.target.value = '';
@@ -207,7 +214,16 @@ export default function BusinessPage() {
     setFormData({ business_name: '', email: '', phone: '', address: '', tax_rate: 16.0, logo_shape: 'rect' });
     setLogoFile(null);
     setLogoPreview(null);
+    setLogoPreviewFailed(false);
     setLogoShape('rect');
+  };
+
+  const handleLogoLoadError = (businessId?: number) => {
+    if (businessId) {
+      setFailedLogoIds((prev) => new Set(prev).add(businessId));
+      return;
+    }
+    setLogoPreviewFailed(true);
   };
 
   const isFormValid = () =>
@@ -318,11 +334,12 @@ export default function BusinessPage() {
                                 ? 'border-white/20 dark:border-gray-900/20 bg-white/10 dark:bg-gray-900/10'
                                 : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'
                             }`}>
-                              {business.logo ? (
+                              {business.logo && !failedLogoIds.has(business.id) ? (
                                 <img
                                   src={getLogoUrl(business.logo) || ''}
                                   alt={business.business_name}
                                   className={`h-full w-full ${business.logo_shape === 'circle' ? 'object-cover' : 'object-contain p-1'}`}
+                                  onError={() => handleLogoLoadError(business.id)}
                                 />
                               ) : (
                                 <span className={`text-sm font-bold ${
@@ -398,11 +415,12 @@ export default function BusinessPage() {
                             logoShape === 'circle' ? 'rounded-full' : 'rounded-2xl'
                           }`}
                         >
-                          {logoPreview ? (
+                          {logoPreview && !logoPreviewFailed ? (
                             <img
                               src={logoPreview}
                               alt="Logo"
                               className={`h-full w-full ${logoShape === 'circle' ? 'object-cover' : 'object-contain p-2'}`}
+                              onError={() => handleLogoLoadError()}
                             />
                           ) : (
                             <span className="text-2xl font-bold text-gray-300 dark:text-gray-600">
@@ -741,11 +759,12 @@ export default function BusinessPage() {
                   logoShape === 'circle' ? 'rounded-full' : 'rounded-2xl'
                 }`}
               >
-                {logoPreview ? (
+                {logoPreview && !logoPreviewFailed ? (
                   <img
                     src={logoPreview}
                     alt="Logo preview"
                     className={`h-full w-full ${logoShape === 'circle' ? 'object-cover' : 'object-contain p-2'}`}
+                    onError={() => handleLogoLoadError()}
                   />
                 ) : (
                   <ImageIcon className="h-7 w-7 text-gray-300 dark:text-gray-600" />
