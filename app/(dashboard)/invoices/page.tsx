@@ -31,6 +31,15 @@ const toNumber = (value: unknown): number => {
   return 0;
 };
 
+const getBalanceDue = (invoice: Invoice): number => {
+  const balanceFromApi = toNumber(invoice.balance_due);
+  if (balanceFromApi) return balanceFromApi;
+  const total = toNumber(invoice.total_amount);
+  const paid = toNumber(invoice.amount_paid);
+  const balance = total - paid;
+  return balance > 0 ? balance : 0;
+};
+
 const parseList = <T,>(payload: unknown): T[] => {
   if (Array.isArray(payload)) return payload;
   if (
@@ -173,7 +182,8 @@ export default function InvoicesPage() {
   };
 
   const handlePayWithMpesa = async (invoice: Invoice) => {
-    if (invoice.status === 'paid') {
+    const balanceDue = getBalanceDue(invoice);
+    if (invoice.status === 'paid' || balanceDue <= 0) {
       toast.error('Invoice is already paid');
       return;
     }
@@ -181,7 +191,7 @@ export default function InvoicesPage() {
     const phoneNumber = window.prompt(`Enter M-Pesa phone for ${invoice.invoice_number}:`, '');
     if (!phoneNumber?.trim()) return;
 
-    const amountInput = window.prompt(`Enter amount for ${invoice.invoice_number}:`, String(invoice.total_amount));
+    const amountInput = window.prompt(`Enter amount for ${invoice.invoice_number}:`, String(balanceDue));
     if (amountInput === null) return;
 
     try {
@@ -265,8 +275,12 @@ export default function InvoicesPage() {
       </button>
       <button
         onClick={() => handlePayWithMpesa(invoice)}
-        disabled={invoice.status === 'paid'}
-        className={`rounded-lg border px-2 py-1 text-xs font-medium ${invoice.status === 'paid' ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500' : 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900/30 dark:bg-indigo-950/30 dark:text-indigo-300'}`}
+        disabled={invoice.status === 'paid' || getBalanceDue(invoice) <= 0}
+        className={`rounded-lg border px-2 py-1 text-xs font-medium ${
+          invoice.status === 'paid' || getBalanceDue(invoice) <= 0
+            ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500'
+            : 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900/30 dark:bg-indigo-950/30 dark:text-indigo-300'
+        }`}
       >
         Pay M-Pesa
       </button>
@@ -428,7 +442,14 @@ export default function InvoicesPage() {
                             <p>{formatDate(invoice.issue_date)}</p>
                             <p className="text-xs text-slate-500">Due {formatDate(invoice.due_date)}</p>
                           </td>
-                          <td className="px-6 py-4 font-semibold text-slate-900 dark:text-slate-100">{formatCurrency(invoice.total_amount)}</td>
+                          <td className="px-6 py-4">
+                            <p className="font-semibold text-slate-900 dark:text-slate-100">
+                              {formatCurrency(invoice.total_amount)}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              Balance {formatCurrency(getBalanceDue(invoice))}
+                            </p>
+                          </td>
                           <td className="px-6 py-4"><StatusBadge status={invoice.status} /></td>
                           <td className="px-6 py-4"><ActionButtons invoice={invoice} /></td>
                         </tr>
@@ -460,6 +481,10 @@ export default function InvoicesPage() {
                         <div className="col-span-2">
                           <p className="text-slate-500">Amount</p>
                           <p className="font-semibold text-slate-900 dark:text-slate-100">{formatCurrency(invoice.total_amount)}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-slate-500">Balance Due</p>
+                          <p className="font-semibold text-slate-900 dark:text-slate-100">{formatCurrency(getBalanceDue(invoice))}</p>
                         </div>
                       </div>
                       <div className="mt-3"><ActionButtons invoice={invoice} /></div>

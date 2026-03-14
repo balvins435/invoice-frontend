@@ -71,6 +71,8 @@ export interface Invoice {
   status: 'draft' | 'sent' | 'paid';
   has_receipt?: boolean;
   receipt_number?: string | null;
+  amount_paid?: number;
+  balance_due?: number;
   created_at: string;
   items: InvoiceItem[];
 }
