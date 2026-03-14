@@ -36,6 +36,8 @@ export interface Business {
   id: number;
   owner: number;
   business_name: string;
+  display_name?: string;
+  slug?: string;
   email: string;
   phone: string;
   address: string;
@@ -66,9 +68,11 @@ export interface Invoice {
   subtotal: number;
   tax_amount: number;
   total_amount: number;
+  currency?: string;
   tax_invoice_number?: string;
   etims_synced_at?: string | null;
   status: 'draft' | 'sent' | 'paid';
+  paid_at?: string | null;
   has_receipt?: boolean;
   receipt_number?: string | null;
   amount_paid?: number;
