@@ -107,33 +107,62 @@ export default function ExpensesPage() {
   const totalAmount    = expenses.reduce((s, e) => s + toNumber(e.amount), 0);
   const deductible     = expenses.filter(e => e.tax_deductible).reduce((s, e) => s + toNumber(e.amount), 0);
   const nonDeductible  = expenses.filter(e => !e.tax_deductible).reduce((s, e) => s + toNumber(e.amount), 0);
-  const byCategory     = expenses.reduce((acc, e) => {
-    acc[e.category] = (acc[e.category] || 0) + toNumber(e.amount);
+  const byCategory     = filtered.reduce((acc, e) => {
+    if (!acc[e.category]) {
+      acc[e.category] = { total: 0, deductible: 0 };
+    }
+    const amount = toNumber(e.amount);
+    acc[e.category].total += amount;
+    if (e.tax_deductible) acc[e.category].deductible += amount;
     return acc;
-  }, {} as Record<string, number>);
+  }, {} as Record<string, { total: number; deductible: number }>);
 
-  const topCategories = Object.entries(byCategory).sort(([, a], [, b]) => b - a).slice(0, 6);
+  const categoryEntries = Object.entries(byCategory)
+    .map(([category, data]) => ({
+      category,
+      total: data.total,
+      deductibleRatio: data.total > 0 ? data.deductible / data.total : 0,
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  const topCategories = categoryEntries.slice(0, 6);
   const categoryCount = Object.keys(byCategory).length;
+  const categoryTotalAmount = categoryEntries.reduce((sum, entry) => sum + entry.total, 0);
 
   const categoryChartData = React.useMemo(() => {
-    const entries = Object.entries(byCategory).sort(([, a], [, b]) => b - a);
-    if (!entries.length) return null;
+    if (!categoryEntries.length) return null;
 
     const maxSlices = 8;
-    const sliced = entries.slice(0, maxSlices);
-    const remainder = entries.slice(maxSlices);
-    const remainderTotal = remainder.reduce((sum, [, amount]) => sum + amount, 0);
+    const sliced = categoryEntries.slice(0, maxSlices);
+    const remainder = categoryEntries.slice(maxSlices);
+    const remainderTotal = remainder.reduce((sum, entry) => sum + entry.total, 0);
+    const remainderDeductible = remainder.reduce((sum, entry) => sum + (entry.total * entry.deductibleRatio), 0);
 
-    const labels = sliced.map(([category]) => EXPENSE_CATEGORIES[category as ExpenseCategory] || category);
-    const values = sliced.map(([, amount]) => amount);
+    const labels = sliced.map((entry) => EXPENSE_CATEGORIES[entry.category as ExpenseCategory] || entry.category);
+    const values = sliced.map((entry) => entry.total);
+    const ratios = sliced.map((entry) => entry.deductibleRatio);
 
     if (remainderTotal > 0) {
       labels.push('Other');
       values.push(remainderTotal);
+      ratios.push(remainderTotal > 0 ? remainderDeductible / remainderTotal : 0);
     }
 
-    const palette = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#14b8a6', '#e879f9', '#0ea5e9', '#f97316', '#a3e635'];
-    const colors = labels.map((_, idx) => palette[idx % palette.length]);
+    const deductiblePalette = ['#10b981', '#22c55e', '#14b8a6', '#0ea5e9'];
+    const nonDeductiblePalette = ['#f59e0b', '#f97316', '#ef4444', '#fb7185'];
+    let deductibleIndex = 0;
+    let nonDeductibleIndex = 0;
+
+    const colors = ratios.map((ratio) => {
+      if (ratio >= 0.5) {
+        const color = deductiblePalette[deductibleIndex % deductiblePalette.length];
+        deductibleIndex += 1;
+        return color;
+      }
+      const color = nonDeductiblePalette[nonDeductibleIndex % nonDeductiblePalette.length];
+      nonDeductibleIndex += 1;
+      return color;
+    });
 
     return {
       labels,
@@ -145,7 +174,7 @@ export default function ExpensesPage() {
         },
       ],
     };
-  }, [byCategory]);
+  }, [categoryEntries]);
 
   const isCreatePending = pendingRoute === '/expenses/create' && pathname !== '/expenses/create';
 
@@ -440,6 +469,15 @@ export default function ExpensesPage() {
                       position: 'bottom',
                       labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true },
                     },
+                    tooltip: {
+                      callbacks: {
+                        label: (context) => {
+                          const value = Number(context.parsed || 0);
+                          const pct = categoryTotalAmount > 0 ? (value / categoryTotalAmount) * 100 : 0;
+                          return `${context.label}: ${formatCurrency(value)} (${pct.toFixed(1)}%)`;
+                        },
+                      },
+                    },
                   },
                   cutout: '55%',
                 }}
@@ -454,16 +492,18 @@ export default function ExpensesPage() {
           {/* Category rows */}
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Breakdown</p>
-            {topCategories.map(([category, amount]) => {
-              const pct = totalAmount > 0 ? (amount / totalAmount) * 100 : 0;
+            {topCategories.map((entry) => {
+              const pct = categoryTotalAmount > 0 ? (entry.total / categoryTotalAmount) * 100 : 0;
               return (
-                <div key={category}>
+                <div key={entry.category}>
                   <div className="flex items-center justify-between py-2">
                     <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {EXPENSE_CATEGORIES[category as ExpenseCategory] || category}
+                      {EXPENSE_CATEGORIES[entry.category as ExpenseCategory] || entry.category}
                     </span>
                     <div className="text-right">
-                      <span className="text-sm font-bold text-gray-900 dark:text-white tabular-nums">{formatCurrency(amount)}</span>
+                      <span className="text-sm font-bold text-gray-900 dark:text-white tabular-nums">
+                        {formatCurrency(entry.total)}
+                      </span>
                       <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">{pct.toFixed(1)}%</span>
                     </div>
                   </div>
@@ -481,7 +521,9 @@ export default function ExpensesPage() {
           {/* Total */}
           <div className="flex items-center justify-between rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-5 py-4">
             <span className="text-sm font-bold text-gray-900 dark:text-white">Total Expenses</span>
-            <span className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">{formatCurrency(totalAmount)}</span>
+            <span className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">
+              {formatCurrency(categoryTotalAmount)}
+            </span>
           </div>
         </div>
       </Modal>
