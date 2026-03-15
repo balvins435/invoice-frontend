@@ -71,7 +71,7 @@ export interface Invoice {
   currency?: string;
   tax_invoice_number?: string;
   etims_synced_at?: string | null;
-  status: 'draft' | 'sent' | 'paid';
+  status: 'draft' | 'sent' | 'paid' | 'pending' | 'partial';
   paid_at?: string | null;
   has_receipt?: boolean;
   receipt_number?: string | null;
@@ -92,7 +92,7 @@ export interface CreateInvoiceData {
 }
 
 export interface InvoiceFilters {
-  status?: 'draft' | 'sent' | 'paid';
+  status?: 'draft' | 'sent' | 'paid' | 'pending' | 'partial';
   client_name?: string;
   date_from?: string;
   date_to?: string;

@@ -80,6 +80,8 @@ const StatusBadge = ({ status }: { status: string }) => {
     paid: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/30',
     sent: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/30',
     draft: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+    pending: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/30',
+    partial: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/30',
   };
 
   return (
@@ -97,6 +99,12 @@ export default function InvoicesPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
+  const [paymentForm, setPaymentForm] = useState({ phone: '', amount: '' });
+  const [paymentErrors, setPaymentErrors] = useState<{ phone?: string; amount?: string }>({});
+  const [isPaymentSubmitting, setIsPaymentSubmitting] = useState(false);
+  const [optimisticPayments, setOptimisticPayments] = useState<Record<number, { status: 'pending' | 'partial' | 'paid'; balance_due?: number; amount_paid?: number }>>({});
   const router = useRouter();
 
   const fetchInvoices = useCallback(async () => {
@@ -181,29 +189,82 @@ export default function InvoicesPage() {
     }
   };
 
-  const handlePayWithMpesa = async (invoice: Invoice) => {
+  const openPaymentModal = (invoice: Invoice) => {
     const balanceDue = getBalanceDue(invoice);
     if (invoice.status === 'paid' || balanceDue <= 0) {
       toast.error('Invoice is already paid');
       return;
     }
+    setPaymentInvoice(invoice);
+    setPaymentForm({
+      phone: '',
+      amount: String(balanceDue || invoice.total_amount),
+    });
+    setPaymentErrors({});
+    setShowPaymentModal(true);
+  };
 
-    const phoneNumber = window.prompt(`Enter M-Pesa phone for ${invoice.invoice_number}:`, '');
-    if (!phoneNumber?.trim()) return;
+  const closePaymentModal = () => {
+    setShowPaymentModal(false);
+    setPaymentInvoice(null);
+    setPaymentForm({ phone: '', amount: '' });
+    setPaymentErrors({});
+  };
 
-    const amountInput = window.prompt(`Enter amount for ${invoice.invoice_number}:`, String(balanceDue));
-    if (amountInput === null) return;
+  const handleSubmitPayment = async () => {
+    if (!paymentInvoice) return;
+    const balanceDue = getBalanceDue(paymentInvoice);
+    const amountValue = Number.parseFloat(paymentForm.amount);
+
+    const nextErrors: { phone?: string; amount?: string } = {};
+    if (!paymentForm.phone.trim()) nextErrors.phone = 'Phone number is required.';
+    if (!paymentForm.amount.trim() || Number.isNaN(amountValue) || amountValue <= 0) {
+      nextErrors.amount = 'Enter a valid amount.';
+    } else if (amountValue > balanceDue) {
+      nextErrors.amount = `Amount cannot exceed balance due (${formatCurrency(balanceDue, paymentInvoice.currency)}).`;
+    }
+
+    setPaymentErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
 
     try {
+      setIsPaymentSubmitting(true);
+      setOptimisticPayments((prev) => ({
+        ...prev,
+        [paymentInvoice.id]: {
+          status: 'pending',
+        },
+      }));
+
       await apiService.payments.initiateStkPush({
-        invoice_id: invoice.id,
-        phone_number: phoneNumber.trim(),
-        ...(amountInput.trim() ? { amount: amountInput.trim() } : {}),
+        invoice_id: paymentInvoice.id,
+        phone_number: paymentForm.phone.trim(),
+        amount: paymentForm.amount.trim(),
       });
+
+      const newBalance = Math.max(balanceDue - amountValue, 0);
+      const newPaid = toNumber(paymentInvoice.amount_paid) + amountValue;
+      setOptimisticPayments((prev) => ({
+        ...prev,
+        [paymentInvoice.id]: {
+          status: newBalance <= 0 ? 'paid' : 'partial',
+          balance_due: newBalance,
+          amount_paid: newPaid,
+        },
+      }));
+
       toast.success('STK push initiated');
+      closePaymentModal();
       await fetchInvoices();
     } catch (error: unknown) {
+      setOptimisticPayments((prev) => {
+        const next = { ...prev };
+        delete next[paymentInvoice.id];
+        return next;
+      });
       toast.error(getApiErrorMessage(error, 'Failed to initiate STK push'));
+    } finally {
+      setIsPaymentSubmitting(false);
     }
   };
 
@@ -252,14 +313,30 @@ export default function InvoicesPage() {
     [invoices, searchQuery]
   );
 
+  const getDisplayInvoice = useCallback((invoice: Invoice) => {
+    const override = optimisticPayments[invoice.id];
+    if (!override) return invoice;
+    return {
+      ...invoice,
+      status: override.status,
+      balance_due: override.balance_due ?? invoice.balance_due,
+      amount_paid: override.amount_paid ?? invoice.amount_paid,
+    };
+  }, [optimisticPayments]);
+
+  const displayInvoices = useMemo(
+    () => filteredInvoices.map((invoice) => getDisplayInvoice(invoice)),
+    [filteredInvoices, getDisplayInvoice]
+  );
+
   const summary = useMemo(
     () => ({
-      total: filteredInvoices.length,
-      paid: filteredInvoices.filter((invoice) => invoice.status === 'paid').length,
-      pending: filteredInvoices.filter((invoice) => invoice.status === 'sent').length,
-      totalAmount: filteredInvoices.reduce((sum, invoice) => sum + toNumber(invoice.total_amount), 0),
+      total: displayInvoices.length,
+      paid: displayInvoices.filter((invoice) => invoice.status === 'paid').length,
+      pending: displayInvoices.filter((invoice) => ['sent', 'pending', 'partial'].includes(invoice.status)).length,
+      totalAmount: displayInvoices.reduce((sum, invoice) => sum + toNumber(invoice.total_amount), 0),
     }),
-    [filteredInvoices]
+    [displayInvoices]
   );
 
   const ActionButtons = ({ invoice }: { invoice: Invoice }) => (
@@ -274,10 +351,10 @@ export default function InvoicesPage() {
         <span className="inline-flex items-center gap-1"><ReceiptText className="h-3 w-3" /> Receipt</span>
       </button>
       <button
-        onClick={() => handlePayWithMpesa(invoice)}
-        disabled={invoice.status === 'paid' || getBalanceDue(invoice) <= 0}
+        onClick={() => openPaymentModal(invoice)}
+        disabled={invoice.status === 'paid' || invoice.status === 'pending' || getBalanceDue(invoice) <= 0}
         className={`rounded-lg border px-2 py-1 text-xs font-medium ${
-          invoice.status === 'paid' || getBalanceDue(invoice) <= 0
+          invoice.status === 'paid' || invoice.status === 'pending' || getBalanceDue(invoice) <= 0
             ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500'
             : 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900/30 dark:bg-indigo-950/30 dark:text-indigo-300'
         }`}
@@ -431,65 +508,75 @@ export default function InvoicesPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                      {filteredInvoices.map((invoice) => (
-                        <tr key={invoice.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
-                          <td className="px-6 py-4 font-semibold text-blue-600 dark:text-blue-400">{invoice.invoice_number}</td>
+                      {displayInvoices.map((displayInvoice) => {
+                        return (
+                        <tr key={displayInvoice.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                          <td className="px-6 py-4 font-semibold text-blue-600 dark:text-blue-400">
+                            <Link href={`/invoices/${displayInvoice.id}`} className="hover:underline">
+                              {displayInvoice.invoice_number}
+                            </Link>
+                          </td>
                           <td className="px-6 py-4">
-                            <p className="font-medium text-slate-900 dark:text-slate-100">{invoice.client_name}</p>
-                            <p className="text-xs text-slate-500">{invoice.client_email}</p>
+                            <p className="font-medium text-slate-900 dark:text-slate-100">{displayInvoice.client_name}</p>
+                            <p className="text-xs text-slate-500">{displayInvoice.client_email}</p>
                           </td>
                           <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
-                            <p>{formatDate(invoice.issue_date)}</p>
-                            <p className="text-xs text-slate-500">Due {formatDate(invoice.due_date)}</p>
+                            <p>{formatDate(displayInvoice.issue_date)}</p>
+                            <p className="text-xs text-slate-500">Due {formatDate(displayInvoice.due_date)}</p>
                           </td>
                           <td className="px-6 py-4">
                             <p className="font-semibold text-slate-900 dark:text-slate-100">
-                              {formatCurrency(invoice.total_amount)}
+                              {formatCurrency(displayInvoice.total_amount, displayInvoice.currency)}
                             </p>
                             <p className="text-xs text-slate-500">
-                              Balance {formatCurrency(getBalanceDue(invoice))}
+                              Balance {formatCurrency(getBalanceDue(displayInvoice), displayInvoice.currency)}
                             </p>
                           </td>
-                          <td className="px-6 py-4"><StatusBadge status={invoice.status} /></td>
-                          <td className="px-6 py-4"><ActionButtons invoice={invoice} /></td>
+                          <td className="px-6 py-4"><StatusBadge status={displayInvoice.status} /></td>
+                          <td className="px-6 py-4"><ActionButtons invoice={displayInvoice} /></td>
                         </tr>
-                      ))}
+                      );
+                      })}
                     </tbody>
                   </table>
                 </div>
 
                 <div className="space-y-3 p-4 md:hidden">
-                  {filteredInvoices.map((invoice) => (
-                    <div key={invoice.id} className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+                  {displayInvoices.map((displayInvoice) => {
+                    return (
+                    <div key={displayInvoice.id} className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">{invoice.invoice_number}</p>
-                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{invoice.client_name}</p>
-                          <p className="text-xs text-slate-500">{invoice.client_email}</p>
+                          <Link href={`/invoices/${displayInvoice.id}`} className="text-sm font-semibold text-blue-600 hover:underline dark:text-blue-400">
+                            {displayInvoice.invoice_number}
+                          </Link>
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{displayInvoice.client_name}</p>
+                          <p className="text-xs text-slate-500">{displayInvoice.client_email}</p>
                         </div>
-                        <StatusBadge status={invoice.status} />
+                        <StatusBadge status={displayInvoice.status} />
                       </div>
                       <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                         <div>
                           <p className="text-slate-500">Issued</p>
-                          <p className="font-medium text-slate-800 dark:text-slate-200">{formatDate(invoice.issue_date)}</p>
+                          <p className="font-medium text-slate-800 dark:text-slate-200">{formatDate(displayInvoice.issue_date)}</p>
                         </div>
                         <div>
                           <p className="text-slate-500">Due</p>
-                          <p className="font-medium text-slate-800 dark:text-slate-200">{formatDate(invoice.due_date)}</p>
+                          <p className="font-medium text-slate-800 dark:text-slate-200">{formatDate(displayInvoice.due_date)}</p>
                         </div>
                         <div className="col-span-2">
                           <p className="text-slate-500">Amount</p>
-                          <p className="font-semibold text-slate-900 dark:text-slate-100">{formatCurrency(invoice.total_amount)}</p>
+                          <p className="font-semibold text-slate-900 dark:text-slate-100">{formatCurrency(displayInvoice.total_amount, displayInvoice.currency)}</p>
                         </div>
                         <div className="col-span-2">
                           <p className="text-slate-500">Balance Due</p>
-                          <p className="font-semibold text-slate-900 dark:text-slate-100">{formatCurrency(getBalanceDue(invoice))}</p>
+                          <p className="font-semibold text-slate-900 dark:text-slate-100">{formatCurrency(getBalanceDue(displayInvoice), displayInvoice.currency)}</p>
                         </div>
                       </div>
-                      <div className="mt-3"><ActionButtons invoice={invoice} /></div>
+                      <div className="mt-3"><ActionButtons invoice={displayInvoice} /></div>
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               </>
             )}
@@ -522,6 +609,60 @@ export default function InvoicesPage() {
               className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-700"
             >
               <Trash2 className="h-4 w-4" /> Delete Invoice
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showPaymentModal}
+        onClose={closePaymentModal}
+        title={paymentInvoice ? `Pay ${paymentInvoice.invoice_number}` : 'Pay Invoice'}
+      >
+        <div className="space-y-4">
+          {paymentInvoice && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+              <p className="font-semibold text-slate-900 dark:text-white">{paymentInvoice.client_name}</p>
+              <p className="text-xs text-slate-500">{paymentInvoice.client_email}</p>
+              <p className="mt-2 text-xs text-slate-500">Balance Due</p>
+              <p className="text-base font-semibold text-slate-900 dark:text-white">
+                {formatCurrency(getBalanceDue(paymentInvoice), paymentInvoice.currency)}
+              </p>
+            </div>
+          )}
+
+          <Input
+            label="M-Pesa Phone"
+            placeholder="2547XXXXXXXX"
+            value={paymentForm.phone}
+            onChange={(e) => setPaymentForm((prev) => ({ ...prev, phone: e.target.value }))}
+            error={paymentErrors.phone}
+          />
+          <Input
+            label="Amount"
+            type="number"
+            step="1"
+            min="1"
+            value={paymentForm.amount}
+            onChange={(e) => setPaymentForm((prev) => ({ ...prev, amount: e.target.value }))}
+            error={paymentErrors.amount}
+          />
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={closePaymentModal}
+              className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={isPaymentSubmitting}
+              onClick={handleSubmitPayment}
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+            >
+              {isPaymentSubmitting ? 'Sending…' : 'Send STK Push'}
             </button>
           </div>
         </div>

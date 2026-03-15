@@ -204,7 +204,9 @@ export default function PaymentsPage() {
                       <tr key={transaction.id} className="border-b border-gray-50 dark:border-gray-800">
                         <td className="px-6 py-3 font-medium text-gray-900 dark:text-gray-100">{transaction.reference}</td>
                         <td className="px-6 py-3 text-gray-600 dark:text-gray-300">{transaction.invoice_number || `#${transaction.invoice}`}</td>
-                        <td className="px-6 py-3 text-gray-600 dark:text-gray-300">{formatCurrency(Number(transaction.amount || 0))}</td>
+                        <td className="px-6 py-3 text-gray-600 dark:text-gray-300">
+                          {formatCurrency(transaction.amount, transaction.currency)}
+                        </td>
                         <td className="px-6 py-3 text-gray-600 dark:text-gray-300">{transaction.phone_number}</td>
                         <td className="px-6 py-3">
                           <span className={`rounded-full px-2 py-1 text-xs font-semibold ${

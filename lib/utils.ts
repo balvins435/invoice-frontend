@@ -5,12 +5,25 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(amount: number, currency = 'KES'): string {
-  return new Intl.NumberFormat('en-KE', {
+export function formatCurrency(
+  amount: number | string | null | undefined,
+  currency = 'KES',
+  locale = 'en-KE'
+): string {
+  const numericAmount =
+    typeof amount === 'number'
+      ? amount
+      : typeof amount === 'string'
+        ? Number.parseFloat(amount)
+        : 0;
+  const safeAmount = Number.isFinite(numericAmount) ? numericAmount : 0;
+
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
-  }).format(amount);
+    maximumFractionDigits: 2,
+  }).format(safeAmount);
 }
 
 export function formatDate(date: string | Date): string {
@@ -88,6 +101,8 @@ export function getStatusText(status: string): string {
     sent: 'Sent',
     paid: 'Paid',
     overdue: 'Overdue',
+    pending: 'Pending',
+    partial: 'Partial',
   };
   return texts[status] || status;
 }

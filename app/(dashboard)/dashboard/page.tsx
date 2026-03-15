@@ -284,7 +284,9 @@ export default function DashboardPage() {
                       <p className="mt-0.5 truncate text-xs text-slate-500">{invoice.client_name} · {formatDate(invoice.issue_date)}</p>
                     </div>
                     <div className="ml-4 flex flex-col items-end gap-1">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{formatCurrency(invoice.total_amount)}</p>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        {formatCurrency(invoice.total_amount, invoice.currency)}
+                      </p>
                       <StatusBadge status={invoice.status} />
                     </div>
                   </div>
