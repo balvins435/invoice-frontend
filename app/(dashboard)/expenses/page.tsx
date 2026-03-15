@@ -6,6 +6,8 @@ import {
   TrendingDown, PieChart, Tag, X, ChevronDown,
   AlertTriangle, ReceiptText,
 } from 'lucide-react';
+import { Doughnut } from 'react-chartjs-2';
+import 'chart.js/auto';
 import { Navbar } from '@/components/Navbar';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
@@ -112,6 +114,38 @@ export default function ExpensesPage() {
 
   const topCategories = Object.entries(byCategory).sort(([, a], [, b]) => b - a).slice(0, 6);
   const categoryCount = Object.keys(byCategory).length;
+
+  const categoryChartData = React.useMemo(() => {
+    const entries = Object.entries(byCategory).sort(([, a], [, b]) => b - a);
+    if (!entries.length) return null;
+
+    const maxSlices = 8;
+    const sliced = entries.slice(0, maxSlices);
+    const remainder = entries.slice(maxSlices);
+    const remainderTotal = remainder.reduce((sum, [, amount]) => sum + amount, 0);
+
+    const labels = sliced.map(([category]) => EXPENSE_CATEGORIES[category as ExpenseCategory] || category);
+    const values = sliced.map(([, amount]) => amount);
+
+    if (remainderTotal > 0) {
+      labels.push('Other');
+      values.push(remainderTotal);
+    }
+
+    const palette = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#14b8a6', '#e879f9', '#0ea5e9', '#f97316', '#a3e635'];
+    const colors = labels.map((_, idx) => palette[idx % palette.length]);
+
+    return {
+      labels,
+      datasets: [
+        {
+          data: values,
+          backgroundColor: colors,
+          borderWidth: 0,
+        },
+      ],
+    };
+  }, [byCategory]);
 
   const isCreatePending = pendingRoute === '/expenses/create' && pathname !== '/expenses/create';
 
@@ -393,12 +427,28 @@ export default function ExpensesPage() {
       <Modal isOpen={showCategoryModal} onClose={() => setShowCategoryModal(false)} title="Expense Categories" size="lg">
         <div className="space-y-5">
 
-          {/* Chart placeholder */}
-          <div className="flex h-48 items-center justify-center rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-            <div className="text-center">
-              <PieChart className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600" />
-              <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">Recharts integration</p>
-            </div>
+          {/* Chart */}
+          <div className="h-56 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 p-3">
+            {categoryChartData ? (
+              <Doughnut
+                data={categoryChartData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      position: 'bottom',
+                      labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true },
+                    },
+                  },
+                  cutout: '55%',
+                }}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-gray-400 dark:text-gray-500">
+                No category data available
+              </div>
+            )}
           </div>
 
           {/* Category rows */}
