@@ -40,11 +40,56 @@ const formatCompactNumber = (value: number, currency: string = 'Ksh'): string =>
 // Determine font size based on number of characters in formatted value
 const getFontSizeClass = (value: string): string => {
   const length = value.length;
-  if (length > 20) return 'text-lg';
-  if (length > 15) return 'text-xl';
-  if (length > 12) return 'text-2xl';
-  return 'text-3xl';
+  if (length > 20) return 'text-lg sm:text-xl';
+  if (length > 15) return 'text-xl sm:text-2xl';
+  if (length > 12) return 'text-2xl sm:text-3xl';
+  return 'text-3xl sm:text-4xl';
 };
+
+// Stat Card Component
+const StatCard = ({
+  label,
+  value,
+  subtext,
+  icon: Icon,
+  trend,
+  bgColor,
+  iconBgColor,
+}: {
+  label: string;
+  value: string;
+  subtext: string;
+  icon: React.ComponentType<{ className?: string }>;
+  trend?: 'up' | 'down';
+  bgColor: string;
+  iconBgColor: string;
+}) => (
+  <div className="group relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 sm:p-6">
+    <div className="flex items-start justify-between">
+      <span className={`rounded-xl p-2.5 transition-colors ${iconBgColor}`}>
+        <Icon className="h-5 w-5 sm:h-4 sm:w-4" />
+      </span>
+      {trend && (
+        <span className={`transition-transform group-hover:scale-110 ${trend === 'up' ? 'text-emerald-500' : 'text-red-500'}`}>
+          {trend === 'up' ? <ArrowUpRight className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+        </span>
+      )}
+    </div>
+    <p className="mt-5 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">{label}</p>
+    <p className={`mt-2 font-bold text-slate-900 dark:text-white ${getFontSizeClass(value)}`}>
+      {value}
+    </p>
+    <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">{subtext}</p>
+  </div>
+);
+
+// Section Header Component
+const SectionHeader = ({ title, action }: { title: string; action?: React.ReactNode }) => (
+  <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h2>
+    {action}
+  </div>
+);
 
 const parseList = <T,>(payload: unknown): T[] => {
   if (Array.isArray(payload)) return payload;
@@ -176,91 +221,104 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 dark:bg-slate-950 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Overview</p>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Dashboard</h1>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">A live snapshot of income, expenses, and client activity.</p>
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <div className="mx-auto max-w-7xl space-y-8 lg:space-y-10">
+        {/* Header Section */}
+        <section className="space-y-4 sm:space-y-6">
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">Dashboard</p>
+              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">Welcome back</h1>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">Track your income, expenses, and business metrics at a glance</p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:ml-4">
               <Link
                 href="/expenses/create"
                 onClick={() => setPendingRoute('/expenses/create')}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
               >
-                <CreditCard className="h-4 w-4" /> Add Expense
+                <CreditCard className="h-4 w-4" />
+                <span className="hidden sm:inline">Add Expense</span>
+                <span className="sm:hidden">Expense</span>
               </Link>
               <Link
                 href="/invoices/create"
                 onClick={() => setPendingRoute('/invoices/create')}
-                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 transition-colors dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
               >
-                <Plus className="h-4 w-4" /> New Invoice
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">New Invoice</span>
+                <span className="sm:hidden">Invoice</span>
               </Link>
             </div>
           </div>
         </section>
 
-        <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
-            <div className="flex items-start justify-between">
-              <span className="rounded-xl bg-emerald-50 p-2.5 dark:bg-emerald-950/40"><TrendingUp className="h-4 w-4 text-emerald-600" /></span>
-              <ArrowUpRight className="h-4 w-4 text-emerald-500" />
-            </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500 sm:text-xs">Total Income</p>
-            <p className={`mt-1 font-bold text-slate-900 dark:text-white ${getFontSizeClass(formatCompactNumber(totalIncome))}`}>{formatCompactNumber(totalIncome)}</p>
-            <p className="mt-1 text-xs text-slate-500">From paid invoices</p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
-            <div className="flex items-start justify-between">
-              <span className="rounded-xl bg-red-50 p-2.5 dark:bg-red-950/40"><TrendingDown className="h-4 w-4 text-red-500" /></span>
-              <ArrowUpRight className="h-4 w-4 text-red-500" />
-            </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500 sm:text-xs">Total Expenses</p>
-            <p className={`mt-1 font-bold text-slate-900 dark:text-white ${getFontSizeClass(formatCompactNumber(totalExpenses))}`}>{formatCompactNumber(totalExpenses)}</p>
-            <p className="mt-1 text-xs text-slate-500">{expenses.length} recorded</p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
-            <div className="flex items-start justify-between">
-              <span className="rounded-xl bg-amber-50 p-2.5 dark:bg-amber-950/40"><FileText className="h-4 w-4 text-amber-600" /></span>
-              <span className="text-xs font-semibold text-amber-600">{pendingInvoices}</span>
-            </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500 sm:text-xs">Pending Invoices</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">{pendingInvoices}</p>
-            <p className="mt-1 text-xs text-slate-500">Awaiting payment</p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
-            <div className="flex items-start justify-between">
-              <span className="rounded-xl bg-blue-50 p-2.5 dark:bg-blue-950/40"><Users className="h-4 w-4 text-blue-600" /></span>
-              <ArrowUpRight className="h-4 w-4 text-blue-500" />
-            </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500 sm:text-xs">Clients</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">{totalClients}</p>
-            <p className="mt-1 text-xs text-slate-500">Unique clients</p>
-          </div>
+        {/* KPI Cards */}
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            label="Total Income"
+            value={formatCompactNumber(totalIncome)}
+            subtext="From paid invoices"
+            icon={TrendingUp}
+            trend="up"
+            bgColor="bg-emerald-50 dark:bg-emerald-950/40"
+            iconBgColor="text-emerald-600 dark:text-emerald-400"
+          />
+          <StatCard
+            label="Total Expenses"
+            value={formatCompactNumber(totalExpenses)}
+            subtext={`${expenses.length} transactions`}
+            icon={TrendingDown}
+            trend="down"
+            bgColor="bg-red-50 dark:bg-red-950/40"
+            iconBgColor="text-red-600 dark:text-red-400"
+          />
+          <StatCard
+            label="Pending Invoices"
+            value={String(pendingInvoices)}
+            subtext="Awaiting payment"
+            icon={FileText}
+            bgColor="bg-amber-50 dark:bg-amber-950/40"
+            iconBgColor="text-amber-600 dark:text-amber-400"
+          />
+          <StatCard
+            label="Active Clients"
+            value={String(totalClients)}
+            subtext="Unique clients"
+            icon={Users}
+            bgColor="bg-blue-50 dark:bg-blue-950/40"
+            iconBgColor="text-blue-600 dark:text-blue-400"
+          />
         </section>
 
-        <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className={`rounded-2xl border p-5 shadow-sm sm:p-6 ${netProfit >= 0 ? 'border-blue-200 bg-blue-50 dark:border-blue-900/30 dark:bg-blue-950/20' : 'border-red-200 bg-red-50 dark:border-red-900/30 dark:bg-red-950/20'}`}>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Net Profit</p>
-            <p className={`mt-2 font-bold ${getFontSizeClass(formatCompactNumber(netProfit))} ${netProfit >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-red-700 dark:text-red-300'}`}>
-              {formatCompactNumber(netProfit)}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              {netProfit >= 0 ? 'Profitable period' : 'Operating at a loss'}
-            </p>
+        {/* Profit & Actions Section */}
+        <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div
+            className={`relative overflow-hidden rounded-2xl border-2 p-6 transition-all duration-300 ${
+              netProfit >= 0
+                ? 'border-blue-200 bg-gradient-to-br from-blue-50 to-blue-50/50 dark:border-blue-900/50 dark:from-blue-950/30 dark:to-blue-950/10'
+                : 'border-red-200 bg-gradient-to-br from-red-50 to-red-50/50 dark:border-red-900/50 dark:from-red-950/30 dark:to-red-950/10'
+            }`}
+          >
+            <div className="absolute inset-0 opacity-[0.02] pointer-events-none">
+              <div className={`absolute inset-0 ${netProfit >= 0 ? 'bg-blue-400' : 'bg-red-400'} blur-3xl`} />
+            </div>
+            <div className="relative space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-600 dark:text-slate-400">Net Profit</p>
+              <p className={`font-bold ${getFontSizeClass(formatCompactNumber(netProfit))} ${netProfit >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-red-700 dark:text-red-300'}`}>
+                {formatCompactNumber(netProfit)}
+              </p>
+              <p className="text-xs text-slate-600 dark:text-slate-400 pt-1">
+                {netProfit >= 0 ? '✓ Profitable period' : '⚠ Operating at a loss'}
+              </p>
+            </div>
           </div>
 
-          <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
-            <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Quick Actions</p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <SectionHeader title="Quick Actions" />
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
                 { label: 'New Invoice', icon: FileText, href: '/invoices/create', tone: 'blue' },
                 { label: 'Add Expense', icon: CreditCard, href: '/expenses/create', tone: 'emerald' },
@@ -268,10 +326,10 @@ export default function DashboardPage() {
                 { label: 'Business', icon: Building, href: '/business', tone: 'amber' },
               ].map(({ label, icon: Icon, href, tone }) => {
                 const toneMap: Record<string, string> = {
-                  blue: 'bg-blue-50 border-blue-100 text-blue-700 dark:bg-blue-950/30 dark:border-blue-900/30 dark:text-blue-300',
-                  emerald: 'bg-emerald-50 border-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-900/30 dark:text-emerald-300',
-                  violet: 'bg-violet-50 border-violet-100 text-violet-700 dark:bg-violet-950/30 dark:border-violet-900/30 dark:text-violet-300',
-                  amber: 'bg-amber-50 border-amber-100 text-amber-700 dark:bg-amber-950/30 dark:border-amber-900/30 dark:text-amber-300',
+                  blue: 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 dark:bg-blue-950/30 dark:border-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-950/50',
+                  emerald: 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-950/50',
+                  violet: 'bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100 dark:bg-violet-950/30 dark:border-violet-900/40 dark:text-violet-300 dark:hover:bg-violet-950/50',
+                  amber: 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/30 dark:border-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-950/50',
                 };
                 const isPending = pendingRoute === href && pathname !== href;
 
@@ -280,10 +338,12 @@ export default function DashboardPage() {
                     key={href}
                     href={href}
                     onClick={() => setPendingRoute(href)}
-                    className={`flex flex-col items-center gap-2 rounded-xl border px-3 py-4 text-center text-xs font-medium transition sm:text-sm ${toneMap[tone]} ${isPending ? 'pointer-events-none opacity-70' : ''}`}
+                    className={`group flex flex-col items-center gap-3 rounded-xl border px-4 py-5 text-center transition-all duration-200 ${toneMap[tone]} ${
+                      isPending ? 'pointer-events-none opacity-60' : 'hover:shadow-md'
+                    }`}
                   >
-                    <Icon className="h-5 w-5" />
-                    <span className="line-clamp-2">{label}</span>
+                    <Icon className="h-5 w-5 transition-transform group-hover:scale-110" />
+                    <span className="text-xs font-medium line-clamp-2">{label}</span>
                   </Link>
                 );
               })}
@@ -291,24 +351,41 @@ export default function DashboardPage() {
           </div>
         </section>
 
+        {/* Recent Activity */}
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex flex-col items-start justify-between gap-2 border-b border-slate-100 px-5 py-4 dark:border-slate-800 sm:flex-row sm:items-center">
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">Recent Invoices</p>
-              <Link href="/invoices" onClick={() => setPendingRoute('/invoices')} className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+            <div className="flex flex-col items-start justify-between gap-3 border-b border-slate-200 px-6 py-4 dark:border-slate-800 sm:flex-row sm:items-center">
+              <SectionHeader title="Recent Invoices" />
+              <Link
+                href="/invoices"
+                onClick={() => setPendingRoute('/invoices')}
+                className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors dark:text-slate-400 dark:hover:text-white"
+              >
                 View all <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
 
             {recentInvoices.length ? (
-              <div className="divide-y divide-slate-50 dark:divide-slate-800">
-                {recentInvoices.map((invoice) => (
-                  <div key={invoice.id} className="flex flex-col gap-2 px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 sm:flex-row sm:items-center sm:justify-between">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {recentInvoices.map((invoice, idx) => (
+                  <div
+                    key={invoice.id}
+                    className="group flex flex-col gap-3 px-6 py-4 transition-colors duration-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                  >
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{invoice.invoice_number}</p>
-                      <p className="mt-0.5 truncate text-xs text-slate-500">{invoice.client_name} · {formatDate(invoice.issue_date)}</p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-semibold text-slate-600 dark:text-slate-300">
+                          {idx + 1}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{invoice.invoice_number}</p>
+                          <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+                            {invoice.client_name} • {formatDate(invoice.issue_date)}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end">
+                    <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end sm:gap-2">
                       <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                         {formatCompactNumber(toNumber(invoice.total_amount), invoice.currency)}
                       </p>
@@ -318,32 +395,58 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : (
-              <div className="p-8 text-center text-sm text-slate-500">No invoices yet.</div>
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <FileText className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700 mb-2" />
+                  <p className="text-sm text-slate-500 dark:text-slate-400">No invoices yet</p>
+                </div>
+              </div>
             )}
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex flex-col items-start justify-between gap-2 border-b border-slate-100 px-5 py-4 dark:border-slate-800 sm:flex-row sm:items-center">
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">Recent Expenses</p>
-              <Link href="/expenses" onClick={() => setPendingRoute('/expenses')} className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+            <div className="flex flex-col items-start justify-between gap-3 border-b border-slate-200 px-6 py-4 dark:border-slate-800 sm:flex-row sm:items-center">
+              <SectionHeader title="Recent Expenses" />
+              <Link
+                href="/expenses"
+                onClick={() => setPendingRoute('/expenses')}
+                className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors dark:text-slate-400 dark:hover:text-white"
+              >
                 View all <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
 
             {recentExpenses.length ? (
-              <div className="divide-y divide-slate-50 dark:divide-slate-800">
-                {recentExpenses.map((expense) => (
-                  <div key={expense.id} className="flex flex-col gap-2 px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 sm:flex-row sm:items-center sm:justify-between">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {recentExpenses.map((expense, idx) => (
+                  <div
+                    key={expense.id}
+                    className="group flex flex-col gap-3 px-6 py-4 transition-colors duration-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                  >
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{expense.title}</p>
-                      <p className="mt-0.5 truncate text-xs text-slate-500">{expense.category} · {formatDate(expense.expense_date)}</p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-red-100 dark:bg-red-950/40 flex items-center justify-center text-xs font-semibold text-red-600 dark:text-red-400">
+                          {idx + 1}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{expense.title}</p>
+                          <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+                            {expense.category} • {formatDate(expense.expense_date)}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                     <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{formatCompactNumber(toNumber(expense.amount))}</p>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="p-8 text-center text-sm text-slate-500">No expenses yet.</div>
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <CreditCard className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700 mb-2" />
+                  <p className="text-sm text-slate-500 dark:text-slate-400">No expenses yet</p>
+                </div>
+              </div>
             )}
           </div>
         </section>
