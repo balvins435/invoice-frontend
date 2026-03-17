@@ -21,6 +21,31 @@ import { apiService } from '@/lib/api';
 import { Expense, Invoice } from '@/types';
 import { formatCurrency, formatDate, getStatusText } from '@/lib/utils';
 
+// Format large numbers with abbreviations (K, M, B)
+const formatCompactNumber = (value: number, currency: string = 'Ksh'): string => {
+  const absValue = Math.abs(value);
+  
+  if (absValue >= 1_000_000_000) {
+    return `${currency} ${(value / 1_000_000_000).toFixed(1)}B`;
+  }
+  if (absValue >= 1_000_000) {
+    return `${currency} ${(value / 1_000_000).toFixed(1)}M`;
+  }
+  if (absValue >= 1_000) {
+    return `${currency} ${(value / 1_000).toFixed(1)}K`;
+  }
+  return formatCurrency(value, currency);
+};
+
+// Determine font size based on number of characters in formatted value
+const getFontSizeClass = (value: string): string => {
+  const length = value.length;
+  if (length > 20) return 'text-lg';
+  if (length > 15) return 'text-xl';
+  if (length > 12) return 'text-2xl';
+  return 'text-3xl';
+};
+
 const parseList = <T,>(payload: unknown): T[] => {
   if (Array.isArray(payload)) return payload;
   if (
@@ -180,60 +205,60 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
             <div className="flex items-start justify-between">
               <span className="rounded-xl bg-emerald-50 p-2.5 dark:bg-emerald-950/40"><TrendingUp className="h-4 w-4 text-emerald-600" /></span>
               <ArrowUpRight className="h-4 w-4 text-emerald-500" />
             </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Total Income</p>
-            <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{formatCurrency(totalIncome)}</p>
+            <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500 sm:text-xs">Total Income</p>
+            <p className={`mt-1 font-bold text-slate-900 dark:text-white ${getFontSizeClass(formatCompactNumber(totalIncome))}`}>{formatCompactNumber(totalIncome)}</p>
             <p className="mt-1 text-xs text-slate-500">From paid invoices</p>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
             <div className="flex items-start justify-between">
               <span className="rounded-xl bg-red-50 p-2.5 dark:bg-red-950/40"><TrendingDown className="h-4 w-4 text-red-500" /></span>
               <ArrowUpRight className="h-4 w-4 text-red-500" />
             </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Total Expenses</p>
-            <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{formatCurrency(totalExpenses)}</p>
+            <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500 sm:text-xs">Total Expenses</p>
+            <p className={`mt-1 font-bold text-slate-900 dark:text-white ${getFontSizeClass(formatCompactNumber(totalExpenses))}`}>{formatCompactNumber(totalExpenses)}</p>
             <p className="mt-1 text-xs text-slate-500">{expenses.length} recorded</p>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
             <div className="flex items-start justify-between">
               <span className="rounded-xl bg-amber-50 p-2.5 dark:bg-amber-950/40"><FileText className="h-4 w-4 text-amber-600" /></span>
               <span className="text-xs font-semibold text-amber-600">{pendingInvoices}</span>
             </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Pending Invoices</p>
-            <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{pendingInvoices}</p>
+            <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500 sm:text-xs">Pending Invoices</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">{pendingInvoices}</p>
             <p className="mt-1 text-xs text-slate-500">Awaiting payment</p>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
             <div className="flex items-start justify-between">
               <span className="rounded-xl bg-blue-50 p-2.5 dark:bg-blue-950/40"><Users className="h-4 w-4 text-blue-600" /></span>
               <ArrowUpRight className="h-4 w-4 text-blue-500" />
             </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Clients</p>
-            <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{totalClients}</p>
+            <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500 sm:text-xs">Clients</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">{totalClients}</p>
             <p className="mt-1 text-xs text-slate-500">Unique clients</p>
           </div>
         </section>
 
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className={`rounded-2xl border p-5 shadow-sm ${netProfit >= 0 ? 'border-blue-200 bg-blue-50 dark:border-blue-900/30 dark:bg-blue-950/20' : 'border-red-200 bg-red-50 dark:border-red-900/30 dark:bg-red-950/20'}`}>
+          <div className={`rounded-2xl border p-5 shadow-sm sm:p-6 ${netProfit >= 0 ? 'border-blue-200 bg-blue-50 dark:border-blue-900/30 dark:bg-blue-950/20' : 'border-red-200 bg-red-50 dark:border-red-900/30 dark:bg-red-950/20'}`}>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Net Profit</p>
-            <p className={`mt-2 text-3xl font-bold ${netProfit >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-red-700 dark:text-red-300'}`}>
-              {formatCurrency(netProfit)}
+            <p className={`mt-2 font-bold ${getFontSizeClass(formatCompactNumber(netProfit))} ${netProfit >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-red-700 dark:text-red-300'}`}>
+              {formatCompactNumber(netProfit)}
             </p>
             <p className="mt-1 text-xs text-slate-500">
               {netProfit >= 0 ? 'Profitable period' : 'Operating at a loss'}
             </p>
           </div>
 
-          <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
             <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Quick Actions</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
@@ -255,10 +280,10 @@ export default function DashboardPage() {
                     key={href}
                     href={href}
                     onClick={() => setPendingRoute(href)}
-                    className={`flex flex-col items-center gap-2 rounded-xl border px-3 py-4 text-center text-sm font-medium transition ${toneMap[tone]} ${isPending ? 'pointer-events-none opacity-70' : ''}`}
+                    className={`flex flex-col items-center gap-2 rounded-xl border px-3 py-4 text-center text-xs font-medium transition sm:text-sm ${toneMap[tone]} ${isPending ? 'pointer-events-none opacity-70' : ''}`}
                   >
                     <Icon className="h-5 w-5" />
-                    {label}
+                    <span className="line-clamp-2">{label}</span>
                   </Link>
                 );
               })}
@@ -268,7 +293,7 @@ export default function DashboardPage() {
 
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+            <div className="flex flex-col items-start justify-between gap-2 border-b border-slate-100 px-5 py-4 dark:border-slate-800 sm:flex-row sm:items-center">
               <p className="text-sm font-semibold text-slate-900 dark:text-white">Recent Invoices</p>
               <Link href="/invoices" onClick={() => setPendingRoute('/invoices')} className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
                 View all <ArrowRight className="h-3 w-3" />
@@ -278,14 +303,14 @@ export default function DashboardPage() {
             {recentInvoices.length ? (
               <div className="divide-y divide-slate-50 dark:divide-slate-800">
                 {recentInvoices.map((invoice) => (
-                  <div key={invoice.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60">
-                    <div className="min-w-0">
+                  <div key={invoice.id} className="flex flex-col gap-2 px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{invoice.invoice_number}</p>
                       <p className="mt-0.5 truncate text-xs text-slate-500">{invoice.client_name} · {formatDate(invoice.issue_date)}</p>
                     </div>
-                    <div className="ml-4 flex flex-col items-end gap-1">
+                    <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end">
                       <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {formatCurrency(invoice.total_amount, invoice.currency)}
+                        {formatCompactNumber(toNumber(invoice.total_amount), invoice.currency)}
                       </p>
                       <StatusBadge status={invoice.status} />
                     </div>
@@ -298,7 +323,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+            <div className="flex flex-col items-start justify-between gap-2 border-b border-slate-100 px-5 py-4 dark:border-slate-800 sm:flex-row sm:items-center">
               <p className="text-sm font-semibold text-slate-900 dark:text-white">Recent Expenses</p>
               <Link href="/expenses" onClick={() => setPendingRoute('/expenses')} className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
                 View all <ArrowRight className="h-3 w-3" />
@@ -308,12 +333,12 @@ export default function DashboardPage() {
             {recentExpenses.length ? (
               <div className="divide-y divide-slate-50 dark:divide-slate-800">
                 {recentExpenses.map((expense) => (
-                  <div key={expense.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60">
-                    <div className="min-w-0">
+                  <div key={expense.id} className="flex flex-col gap-2 px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{expense.title}</p>
                       <p className="mt-0.5 truncate text-xs text-slate-500">{expense.category} · {formatDate(expense.expense_date)}</p>
                     </div>
-                    <p className="ml-4 text-sm font-semibold text-slate-900 dark:text-slate-100">{formatCurrency(expense.amount)}</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{formatCompactNumber(toNumber(expense.amount))}</p>
                   </div>
                 ))}
               </div>
