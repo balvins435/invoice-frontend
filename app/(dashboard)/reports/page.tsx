@@ -2,8 +2,6 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ArrowDownRight,
-  ArrowUpRight,
   BarChart3,
   Download,
   FileText,
@@ -19,6 +17,7 @@ import 'chart.js/auto';
 import 'react-datepicker/dist/react-datepicker.css';
 
 import { Navbar } from '@/components/Navbar';
+import { MetricCard } from '@/components/ui/MetricCard';
 import { apiService } from '@/lib/api';
 import { MonthlyReport, ProfitLossStatement, TaxSummary } from '@/types';
 import { formatCurrency } from '@/lib/utils';
@@ -297,55 +296,51 @@ export default function ReportsPage() {
           </section>
 
           {isLoading ? (
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[...Array(4)].map((_, index) => (
                 <div key={index} className="h-32 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
               ))}
             </div>
           ) : currentReport ? (
-            <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <div className="flex items-start justify-between">
-                  <span className="rounded-xl bg-emerald-50 p-2.5 dark:bg-emerald-950/40"><TrendingUp className="h-4 w-4 text-emerald-600" /></span>
-                  <ArrowUpRight className="h-4 w-4 text-emerald-500" />
-                </div>
-                <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Total Income</p>
-                <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{formatCurrency(currentReport.total_income)}</p>
-                <p className="mt-1 text-xs text-slate-500">{currentReport.invoice_count} invoices</p>
-              </div>
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <MetricCard
+                label="Total Income"
+                value={currentReport.total_income}
+                subtitle={`${currentReport.invoice_count} invoices`}
+                icon={TrendingUp}
+                trend="up"
+                tone="emerald"
+                isCurrency
+              />
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <div className="flex items-start justify-between">
-                  <span className="rounded-xl bg-red-50 p-2.5 dark:bg-red-950/40"><TrendingDown className="h-4 w-4 text-red-500" /></span>
-                  <ArrowDownRight className="h-4 w-4 text-red-500" />
-                </div>
-                <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Total Expenses</p>
-                <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{formatCurrency(currentReport.total_expenses)}</p>
-                <p className="mt-1 text-xs text-slate-500">{currentReport.expense_count} expenses</p>
-              </div>
+              <MetricCard
+                label="Total Expenses"
+                value={currentReport.total_expenses}
+                subtitle={`${currentReport.expense_count} expenses`}
+                icon={TrendingDown}
+                trend="down"
+                tone="red"
+                isCurrency
+              />
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <div className="flex items-start justify-between">
-                  <span className={`rounded-xl p-2.5 ${isProfit ? 'bg-blue-50 dark:bg-blue-950/40' : 'bg-red-50 dark:bg-red-950/40'}`}>
-                    <Percent className={`h-4 w-4 ${isProfit ? 'text-blue-600' : 'text-red-500'}`} />
-                  </span>
-                  {isProfit ? <ArrowUpRight className="h-4 w-4 text-blue-500" /> : <ArrowDownRight className="h-4 w-4 text-red-500" />}
-                </div>
-                <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Net Profit</p>
-                <p className={`mt-1 text-xl font-bold ${isProfit ? 'text-slate-900 dark:text-white' : 'text-red-600'}`}>
-                  {formatCurrency(currentReport.net_profit)}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">{profitLoss?.profit_margin.toFixed(1) || '0.0'}% margin</p>
-              </div>
+              <MetricCard
+                label="Net Profit"
+                value={currentReport.net_profit}
+                subtitle={`${profitLoss?.profit_margin.toFixed(1) || '0.0'}% margin`}
+                icon={Percent}
+                trend={isProfit ? 'up' : 'down'}
+                tone={isProfit ? 'blue' : 'red'}
+                isCurrency
+              />
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <div className="flex items-start justify-between">
-                  <span className="rounded-xl bg-amber-50 p-2.5 dark:bg-amber-950/40"><BarChart3 className="h-4 w-4 text-amber-600" /></span>
-                </div>
-                <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Tax Owed</p>
-                <p className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{formatCurrency(currentReport.tax_owed)}</p>
-                <p className="mt-1 text-xs text-slate-500">VAT summary</p>
-              </div>
+              <MetricCard
+                label="Tax Owed"
+                value={currentReport.tax_owed}
+                subtitle="VAT summary"
+                icon={BarChart3}
+                tone="amber"
+                isCurrency
+              />
             </section>
           ) : null}
 

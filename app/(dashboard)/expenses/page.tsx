@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Plus, Search, Filter, Download, Edit, Trash2,
   TrendingDown, PieChart, Tag, X, ChevronDown,
@@ -10,6 +10,7 @@ import { Doughnut } from 'react-chartjs-2';
 import 'chart.js/auto';
 import { Navbar } from '@/components/Navbar';
 import { Input } from '@/components/ui/Input';
+import { MetricCard } from '@/components/ui/MetricCard';
 import { Modal } from '@/components/ui/Modal';
 import { apiService } from '@/lib/api';
 import { Expense, ExpenseFilters, ExpenseCategory, EXPENSE_CATEGORIES } from '@/types';
@@ -24,15 +25,6 @@ const toNumber = (v: unknown): number => {
   if (typeof v === 'string') { const p = parseFloat(v); return Number.isFinite(p) ? p : 0; }
   return 0;
 };
-
-const formatCurrencyCompact = (amount: number): string => (
-  new Intl.NumberFormat('en-KE', {
-    style: 'currency',
-    currency: 'KES',
-    notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(amount)
-);
 
 const exportCSV = (rows: Expense[]) => {
   const data = [
@@ -81,10 +73,7 @@ export default function ExpensesPage() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const router   = useRouter();
 
-  useEffect(() => { fetchExpenses(); }, [filters]);
-  useEffect(() => { router.prefetch('/expenses/create'); }, [router]);
-
-  const fetchExpenses = async () => {
+  const fetchExpenses = useCallback(async () => {
     try {
       setIsLoading(true);
       const res     = await apiService.expenses.getAll(filters);
@@ -92,7 +81,10 @@ export default function ExpensesPage() {
       setExpenses(Array.isArray(payload) ? payload : Array.isArray(payload?.results) ? payload.results : []);
     } catch { toast.error('Failed to load expenses'); }
     finally  { setIsLoading(false); }
-  };
+  }, [filters]);
+
+  useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
+  useEffect(() => { router.prefetch('/expenses/create'); }, [router]);
 
   const handleDelete = async () => {
     if (!selectedExpense) return;
@@ -183,29 +175,6 @@ export default function ExpensesPage() {
     };
   }, [categoryEntries]);
 
-  const AmountCardValue = ({ amount }: { amount: number }) => {
-    const full = formatCurrency(amount);
-    const compact = formatCurrencyCompact(amount);
-    const useCompactMobile = full.length > 14;
-
-    return (
-      <>
-        <p
-          title={full}
-          className="mt-1 text-lg font-bold leading-tight text-gray-900 tabular-nums dark:text-white sm:hidden"
-        >
-          {useCompactMobile ? compact : full}
-        </p>
-        <p
-          title={full}
-          className="mt-1 hidden text-xl font-bold leading-tight text-gray-900 tabular-nums dark:text-white sm:block"
-        >
-          {full}
-        </p>
-      </>
-    );
-  };
-
   return (
     <>
       <Navbar title="Expenses" subtitle="Track and manage your business expenses" />
@@ -240,53 +209,32 @@ export default function ExpensesPage() {
           {/* ── KPI strip ── */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
-            {/* Total */}
-            <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
-              <div className="flex items-start justify-between">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 dark:bg-red-950/50">
-                  <TrendingDown className="h-5 w-5 text-red-500 dark:text-red-400" />
-                </div>
-              </div>
-              <div className="mt-4">
-                <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Total Expenses</p>
-                <AmountCardValue amount={totalAmount} />
-                <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">{expenses.length} records</p>
-              </div>
-            </div>
+            <MetricCard
+              label="Total Expenses"
+              value={totalAmount}
+              subtitle={`${expenses.length} records`}
+              icon={TrendingDown}
+              tone="red"
+              isCurrency
+            />
 
-            {/* Deductible */}
-            <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
-              <div className="flex items-start justify-between">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-950/50">
-                  <Tag className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <span className="text-xs font-semibold text-emerald-500 dark:text-emerald-400">Deductible</span>
-              </div>
-              <div className="mt-4">
-                <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Tax Deductible</p>
-                <AmountCardValue amount={deductible} />
-                <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
-                  {totalAmount > 0 ? ((deductible / totalAmount) * 100).toFixed(0) : 0}% of total
-                </p>
-              </div>
-            </div>
+            <MetricCard
+              label="Tax Deductible"
+              value={deductible}
+              subtitle={`${totalAmount > 0 ? ((deductible / totalAmount) * 100).toFixed(0) : 0}% of total`}
+              icon={Tag}
+              tone="emerald"
+              isCurrency
+            />
 
-            {/* Non-deductible */}
-            <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
-              <div className="flex items-start justify-between">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 dark:bg-amber-950/50">
-                  <Tag className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                </div>
-                <span className="text-xs font-semibold text-amber-500 dark:text-amber-400">Non-deductible</span>
-              </div>
-              <div className="mt-4">
-                <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Non-Deductible</p>
-                <AmountCardValue amount={nonDeductible} />
-                <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
-                  {totalAmount > 0 ? ((nonDeductible / totalAmount) * 100).toFixed(0) : 0}% of total
-                </p>
-              </div>
-            </div>
+            <MetricCard
+              label="Non-Deductible"
+              value={nonDeductible}
+              subtitle={`${totalAmount > 0 ? ((nonDeductible / totalAmount) * 100).toFixed(0) : 0}% of total`}
+              icon={Tag}
+              tone="amber"
+              isCurrency
+            />
 
             {/* Categories — clickable */}
             <button

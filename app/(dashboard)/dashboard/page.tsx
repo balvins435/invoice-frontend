@@ -3,13 +3,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowRight,
-  ArrowUpRight,
   BarChart3,
   Building,
   CreditCard,
   FileText,
+  Percent,
   Plus,
-  TrendingDown,
   TrendingUp,
   Users,
 } from 'lucide-react';
@@ -17,71 +16,18 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
+import { MetricCard } from '@/components/ui/MetricCard';
 import { apiService } from '@/lib/api';
 import { Expense, Invoice } from '@/types';
-import { formatCurrency, formatDate, getStatusText } from '@/lib/utils';
+import { formatDate, getStatusText } from '@/lib/utils';
 
-// Format large numbers with abbreviations (K, M, B)
-const formatCompactNumber = (value: number, currency: string = 'Ksh'): string => {
-  const absValue = Math.abs(value);
-  
-  if (absValue >= 1_000_000_000) {
-    return `${currency} ${(value / 1_000_000_000).toFixed(1)}B`;
-  }
-  if (absValue >= 1_000_000) {
-    return `${currency} ${(value / 1_000_000).toFixed(1)}M`;
-  }
-  if (absValue >= 1_000) {
-    return `${currency} ${(value / 1_000).toFixed(1)}K`;
-  }
-  return formatCurrency(value, currency);
-};
-
-// Determine font size based on number of characters in formatted value
-const getFontSizeClass = (value: string): string => {
-  const length = value.length;
-  if (length > 20) return 'text-lg sm:text-xl';
-  if (length > 15) return 'text-xl sm:text-2xl';
-  if (length > 12) return 'text-2xl sm:text-3xl';
-  return 'text-3xl sm:text-4xl';
-};
-
-// Stat Card Component
-const StatCard = ({
-  label,
-  value,
-  subtext,
-  icon: Icon,
-  trend,
-  bgColor,
-  iconBgColor,
-}: {
-  label: string;
-  value: string;
-  subtext: string;
-  icon: React.ComponentType<{ className?: string }>;
-  trend?: 'up' | 'down';
-  bgColor: string;
-  iconBgColor: string;
-}) => (
-  <div className="group relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 sm:p-6">
-    <div className="flex items-start justify-between">
-      <span className={`rounded-xl p-2.5 transition-colors ${iconBgColor}`}>
-        <Icon className="h-5 w-5 sm:h-4 sm:w-4" />
-      </span>
-      {trend && (
-        <span className={`transition-transform group-hover:scale-110 ${trend === 'up' ? 'text-emerald-500' : 'text-red-500'}`}>
-          {trend === 'up' ? <ArrowUpRight className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-        </span>
-      )}
-    </div>
-    <p className="mt-5 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">{label}</p>
-    <p className={`mt-2 font-bold text-slate-900 dark:text-white ${getFontSizeClass(value)}`}>
-      {value}
-    </p>
-    <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">{subtext}</p>
-  </div>
-);
+const formatCompactMoney = (value: number, currency = 'KES', locale = 'en-KE') =>
+  new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(value);
 
 // Section Header Component
 const SectionHeader = ({ title, action }: { title: string; action?: React.ReactNode }) => (
@@ -205,7 +151,7 @@ export default function DashboardPage() {
       <main className="min-h-screen bg-slate-50 p-4 dark:bg-slate-950 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-7xl animate-pulse space-y-4 sm:space-y-6">
           <div className="h-8 w-52 rounded-xl bg-slate-200 dark:bg-slate-800" />
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[...Array(4)].map((_, index) => (
               <div key={index} className="h-32 rounded-2xl bg-slate-200 dark:bg-slate-800" />
             ))}
@@ -257,64 +203,51 @@ export default function DashboardPage() {
 
         {/* KPI Cards */}
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
+          <MetricCard
             label="Total Income"
-            value={formatCompactNumber(totalIncome)}
-            subtext="From paid invoices"
+            value={totalIncome}
+            isCurrency
+            subtitle="From paid invoices"
             icon={TrendingUp}
             trend="up"
-            bgColor="bg-emerald-50 dark:bg-emerald-950/40"
-            iconBgColor="text-emerald-600 dark:text-emerald-400"
+            tone="emerald"
           />
-          <StatCard
+          <MetricCard
             label="Total Expenses"
-            value={formatCompactNumber(totalExpenses)}
-            subtext={`${expenses.length} transactions`}
-            icon={TrendingDown}
+            value={totalExpenses}
+            isCurrency
+            subtitle={`${expenses.length} transactions`}
+            icon={CreditCard}
             trend="down"
-            bgColor="bg-red-50 dark:bg-red-950/40"
-            iconBgColor="text-red-600 dark:text-red-400"
+            tone="red"
           />
-          <StatCard
+          <MetricCard
             label="Pending Invoices"
-            value={String(pendingInvoices)}
-            subtext="Awaiting payment"
+            value={pendingInvoices}
+            subtitle="Awaiting payment"
             icon={FileText}
-            bgColor="bg-amber-50 dark:bg-amber-950/40"
-            iconBgColor="text-amber-600 dark:text-amber-400"
+            tone="amber"
           />
-          <StatCard
+          <MetricCard
             label="Active Clients"
-            value={String(totalClients)}
-            subtext="Unique clients"
+            value={totalClients}
+            subtitle="Unique clients"
             icon={Users}
-            bgColor="bg-blue-50 dark:bg-blue-950/40"
-            iconBgColor="text-blue-600 dark:text-blue-400"
+            tone="blue"
           />
         </section>
 
         {/* Profit & Actions Section */}
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div
-            className={`relative overflow-hidden rounded-2xl border-2 p-6 transition-all duration-300 ${
-              netProfit >= 0
-                ? 'border-blue-200 bg-gradient-to-br from-blue-50 to-blue-50/50 dark:border-blue-900/50 dark:from-blue-950/30 dark:to-blue-950/10'
-                : 'border-red-200 bg-gradient-to-br from-red-50 to-red-50/50 dark:border-red-900/50 dark:from-red-950/30 dark:to-red-950/10'
-            }`}
-          >
-            <div className="absolute inset-0 opacity-[0.02] pointer-events-none">
-              <div className={`absolute inset-0 ${netProfit >= 0 ? 'bg-blue-400' : 'bg-red-400'} blur-3xl`} />
-            </div>
-            <div className="relative space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-600 dark:text-slate-400">Net Profit</p>
-              <p className={`font-bold ${getFontSizeClass(formatCompactNumber(netProfit))} ${netProfit >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-red-700 dark:text-red-300'}`}>
-                {formatCompactNumber(netProfit)}
-              </p>
-              <p className="text-xs text-slate-600 dark:text-slate-400 pt-1">
-                {netProfit >= 0 ? '✓ Profitable period' : '⚠ Operating at a loss'}
-              </p>
-            </div>
-          </div>
+          <MetricCard
+            label="Net Profit"
+            value={netProfit}
+            isCurrency
+            subtitle={netProfit >= 0 ? 'Profitable period' : 'Operating at a loss'}
+            icon={Percent}
+            trend={netProfit >= 0 ? 'up' : 'down'}
+            tone={netProfit >= 0 ? 'blue' : 'red'}
+          />
 
           <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <SectionHeader title="Quick Actions" />
@@ -387,7 +320,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end sm:gap-2">
                       <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {formatCompactNumber(toNumber(invoice.total_amount), invoice.currency)}
+                        {formatCompactMoney(toNumber(invoice.total_amount), invoice.currency || 'KES')}
                       </p>
                       <StatusBadge status={invoice.status} />
                     </div>
@@ -436,7 +369,9 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     </div>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{formatCompactNumber(toNumber(expense.amount))}</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      {formatCompactMoney(toNumber(expense.amount))}
+                    </p>
                   </div>
                 ))}
               </div>

@@ -17,6 +17,7 @@ import toast from 'react-hot-toast';
 
 import { Navbar } from '@/components/Navbar';
 import { Input } from '@/components/ui/Input';
+import { MetricCard } from '@/components/ui/MetricCard';
 import { Modal } from '@/components/ui/Modal';
 import { apiService } from '@/lib/api';
 import { Invoice, InvoiceFilters } from '@/types';
@@ -404,23 +405,36 @@ export default function InvoicesPage() {
             </div>
           </section>
 
-          <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Invoices</p>
-              <p className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">{summary.total}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Paid</p>
-              <p className="mt-2 text-3xl font-bold text-emerald-600">{summary.paid}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Pending</p>
-              <p className="mt-2 text-3xl font-bold text-amber-600">{summary.pending}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Value</p>
-              <p className="mt-2 text-xl font-bold text-blue-600">{formatCurrency(summary.totalAmount)}</p>
-            </div>
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <MetricCard
+              label="Total Invoices"
+              value={summary.total}
+              subtitle="All invoice records"
+              icon={FileText}
+              tone="slate"
+            />
+            <MetricCard
+              label="Paid"
+              value={summary.paid}
+              subtitle="Settled invoices"
+              icon={ReceiptText}
+              tone="emerald"
+            />
+            <MetricCard
+              label="Pending"
+              value={summary.pending}
+              subtitle="Awaiting payment"
+              icon={ReceiptText}
+              tone="amber"
+            />
+            <MetricCard
+              label="Total Value"
+              value={summary.totalAmount}
+              subtitle="Invoice portfolio"
+              icon={ReceiptText}
+              tone="blue"
+              isCurrency
+            />
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
