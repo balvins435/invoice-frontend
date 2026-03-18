@@ -16,7 +16,7 @@ import { Expense, ExpenseFilters, ExpenseCategory, EXPENSE_CATEGORIES } from '@/
 import { formatCurrency, formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const toNumber = (v: unknown): number => {
@@ -24,6 +24,15 @@ const toNumber = (v: unknown): number => {
   if (typeof v === 'string') { const p = parseFloat(v); return Number.isFinite(p) ? p : 0; }
   return 0;
 };
+
+const formatCurrencyCompact = (amount: number): string => (
+  new Intl.NumberFormat('en-KE', {
+    style: 'currency',
+    currency: 'KES',
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(amount)
+);
 
 const exportCSV = (rows: Expense[]) => {
   const data = [
@@ -70,9 +79,7 @@ export default function ExpensesPage() {
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [pendingRoute, setPendingRoute]       = useState<string | null>(null);
   const router   = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => { fetchExpenses(); }, [filters]);
   useEffect(() => { router.prefetch('/expenses/create'); }, [router]);
@@ -176,7 +183,28 @@ export default function ExpensesPage() {
     };
   }, [categoryEntries]);
 
-  const isCreatePending = pendingRoute === '/expenses/create' && pathname !== '/expenses/create';
+  const AmountCardValue = ({ amount }: { amount: number }) => {
+    const full = formatCurrency(amount);
+    const compact = formatCurrencyCompact(amount);
+    const useCompactMobile = full.length > 14;
+
+    return (
+      <>
+        <p
+          title={full}
+          className="mt-1 text-lg font-bold leading-tight text-gray-900 tabular-nums dark:text-white sm:hidden"
+        >
+          {useCompactMobile ? compact : full}
+        </p>
+        <p
+          title={full}
+          className="mt-1 hidden text-xl font-bold leading-tight text-gray-900 tabular-nums dark:text-white sm:block"
+        >
+          {full}
+        </p>
+      </>
+    );
+  };
 
   return (
     <>
@@ -201,7 +229,6 @@ export default function ExpensesPage() {
               </button>
               <Link
                 href="/expenses/create"
-                onClick={() => setPendingRoute('/expenses/create')}
                 className="inline-flex items-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-4 py-2.5 text-sm font-medium text-white dark:text-gray-900 shadow-sm hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
               >
                 <Plus className="h-4 w-4" />
@@ -211,7 +238,7 @@ export default function ExpensesPage() {
           </div>
 
           {/* ── KPI strip ── */}
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
             {/* Total */}
             <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
@@ -222,7 +249,7 @@ export default function ExpensesPage() {
               </div>
               <div className="mt-4">
                 <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Total Expenses</p>
-                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white tabular-nums">{formatCurrency(totalAmount)}</p>
+                <AmountCardValue amount={totalAmount} />
                 <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">{expenses.length} records</p>
               </div>
             </div>
@@ -237,7 +264,7 @@ export default function ExpensesPage() {
               </div>
               <div className="mt-4">
                 <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Tax Deductible</p>
-                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white tabular-nums">{formatCurrency(deductible)}</p>
+                <AmountCardValue amount={deductible} />
                 <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
                   {totalAmount > 0 ? ((deductible / totalAmount) * 100).toFixed(0) : 0}% of total
                 </p>
@@ -254,7 +281,7 @@ export default function ExpensesPage() {
               </div>
               <div className="mt-4">
                 <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Non-Deductible</p>
-                <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white tabular-nums">{formatCurrency(nonDeductible)}</p>
+                <AmountCardValue amount={nonDeductible} />
                 <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
                   {totalAmount > 0 ? ((nonDeductible / totalAmount) * 100).toFixed(0) : 0}% of total
                 </p>
@@ -375,7 +402,6 @@ export default function ExpensesPage() {
                 {!searchQuery && (
                   <Link
                     href="/expenses/create"
-                    onClick={() => setPendingRoute('/expenses/create')}
                     className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-4 py-2.5 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
                   >
                     <Plus className="h-4 w-4" /> Add Expense
