@@ -9,6 +9,7 @@ import { Mail, ArrowRight, Loader2, BarChart3 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Input } from '@/components/ui/Input';
 import { authService } from '@/lib/auth';
+import { ROUTES } from '@/lib/routes';
 
 const schema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -142,7 +143,7 @@ export default function ForgotPasswordPage() {
 
           <div className="mt-6 text-center">
             <Link
-              href="/login"
+              href={ROUTES.login}
               className="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               Back to login

@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/Input';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { Modal } from '@/components/ui/Modal';
 import { apiService } from '@/lib/api';
+import { ROUTES } from '@/lib/routes';
 import { Invoice, InvoiceFilters } from '@/types';
 import { formatCurrency, formatDate, getStatusText } from '@/lib/utils';
 
@@ -125,7 +126,7 @@ export default function InvoicesPage() {
   }, [fetchInvoices]);
 
   useEffect(() => {
-    router.prefetch('/invoices/create');
+    router.prefetch(ROUTES.createInvoice);
   }, [router]);
 
   const handleDelete = async () => {
@@ -397,7 +398,7 @@ export default function InvoicesPage() {
               </div>
 
               <Link
-                href="/invoices/create"
+                href={ROUTES.createInvoice}
                 className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
               >
                 <Plus className="h-4 w-4" /> New Invoice

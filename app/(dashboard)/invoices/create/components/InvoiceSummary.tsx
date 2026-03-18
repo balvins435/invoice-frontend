@@ -5,7 +5,7 @@ import { Receipt, Percent, Calculator, TrendingUp, FileText } from 'lucide-react
 import { formatCurrency } from '@/lib/utils';
 
 interface Props {
-  items: Array<{ description: any; quantity: number; unit_price: number; total: number }>;
+  items: Array<{ description: string; quantity: number; unit_price: number; total: number }>;
   taxRate: number;
 }
 
@@ -63,9 +63,19 @@ export const InvoiceSummary: React.FC<Props> = ({ items, taxRate }) => {
   const totalText = formatCurrency(total);
   const avgText = formatCurrency(avgItem);
   // 4xl, 3xl, 2xl in px (36, 30, 24)
-  const totalFit = useFitText(totalText, [36, 30, 24]);
+  const {
+    containerRef: totalContainerRef,
+    textRef: totalTextRef,
+    size: totalFontSize,
+    allowWrap: totalAllowWrap,
+  } = useFitText(totalText, [36, 30, 24]);
   // lg, base, sm in px (18, 16, 14)
-  const avgFit = useFitText(avgText, [18, 16, 14]);
+  const {
+    containerRef: avgContainerRef,
+    textRef: avgTextRef,
+    size: avgFontSize,
+    allowWrap: avgAllowWrap,
+  } = useFitText(avgText, [18, 16, 14]);
 
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
@@ -139,14 +149,14 @@ export const InvoiceSummary: React.FC<Props> = ({ items, taxRate }) => {
                   <TrendingUp className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   <span className="text-xs font-medium text-gray-400 dark:text-gray-500">Avg</span>
                 </div>
-                <div ref={avgFit.containerRef} className="min-w-0">
+                <div ref={avgContainerRef} className="min-w-0">
                   <p
-                    ref={avgFit.textRef}
+                    ref={avgTextRef}
                     className={[
                       'font-bold text-gray-900 dark:text-white tabular-nums leading-tight',
-                      avgFit.allowWrap ? 'break-words' : 'whitespace-nowrap',
+                      avgAllowWrap ? 'break-words' : 'whitespace-nowrap',
                     ].join(' ')}
-                    style={{ fontSize: avgFit.size }}
+                    style={{ fontSize: avgFontSize }}
                   >
                     {avgText}
                   </p>
@@ -162,14 +172,14 @@ export const InvoiceSummary: React.FC<Props> = ({ items, taxRate }) => {
               <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
                 Amount Due
               </p>
-              <div ref={totalFit.containerRef} className="min-w-0 mt-3">
+              <div ref={totalContainerRef} className="min-w-0 mt-3">
                 <p
-                  ref={totalFit.textRef}
+                  ref={totalTextRef}
                   className={[
                     'font-bold text-white dark:text-gray-900 tabular-nums leading-tight',
-                    totalFit.allowWrap ? 'break-words' : 'whitespace-nowrap',
+                    totalAllowWrap ? 'break-words' : 'whitespace-nowrap',
                   ].join(' ')}
-                  style={{ fontSize: totalFit.size }}
+                  style={{ fontSize: totalFontSize }}
                 >
                   {totalText}
                 </p>

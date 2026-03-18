@@ -6,6 +6,7 @@ import {
   ArrowRight, BarChart3, CreditCard, FileText, Shield,
   Smartphone, Zap, Mail, Check, Sparkles,
 } from 'lucide-react';
+import { ROUTES } from '@/lib/routes';
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 const features = [
@@ -79,13 +80,13 @@ export default function LandingPage() {
             {/* Nav buttons */}
             <div className="flex items-center gap-3">
               <Link
-                href="/login"
+                href={ROUTES.login}
                 className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
               >
                 Sign In
               </Link>
               <Link
-                href="/register"
+                href={ROUTES.register}
                 className="rounded-xl bg-gray-900 dark:bg-white px-4 py-2 text-sm font-semibold text-white dark:text-gray-900 shadow-sm hover:bg-gray-800 dark:hover:bg-gray-100 transition-all active:scale-[0.98]"
               >
                 Get Started
@@ -128,7 +129,7 @@ export default function LandingPage() {
             {/* CTA buttons */}
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
               <Link
-                href="/register"
+                href={ROUTES.register}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-6 py-3 text-base font-semibold text-white dark:text-gray-900 shadow-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-all active:scale-[0.98] sm:w-auto"
               >
                 Start Free Trial
@@ -239,13 +240,13 @@ export default function LandingPage() {
 
               <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
                 <Link
-                  href="/register"
+                  href={ROUTES.register}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white dark:bg-gray-900 px-6 py-3 text-base font-semibold text-gray-900 dark:text-white shadow-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all sm:w-auto"
                 >
                   Get Started Free for 14 Days
                 </Link>
                 <Link
-                  href="/login"
+                  href={ROUTES.login}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-white/30 dark:border-gray-900/30 bg-white/10 dark:bg-gray-900/10 px-6 py-3 text-base font-medium text-white dark:text-gray-900 hover:bg-white/20 dark:hover:bg-gray-900/20 transition-colors sm:w-auto"
                 >
                   Book a Demo

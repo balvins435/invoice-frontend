@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import {
   Building,
   Mail,
@@ -20,11 +21,11 @@ import {
 } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { Input } from '@/components/ui/Input';
+import { MetricCard } from '@/components/ui/MetricCard';
 import { Modal } from '@/components/ui/Modal';
 import { apiService } from '@/lib/api';
 import { API_ORIGIN } from '@/lib/config';
 import { Business } from '@/types';
-import { formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 const getLogoUrl = (logo?: string | null) => {
@@ -33,6 +34,27 @@ const getLogoUrl = (logo?: string | null) => {
   if (logo.startsWith('/')) return `${API_ORIGIN}${logo}`;
   return `${API_ORIGIN}/${logo}`;
 };
+
+const parseList = (payload: unknown): Array<Record<string, unknown>> => {
+  if (Array.isArray(payload)) return payload as Array<Record<string, unknown>>;
+  if (payload && typeof payload === 'object' && 'results' in payload) {
+    const results = (payload as { results?: unknown }).results;
+    if (Array.isArray(results)) return results as Array<Record<string, unknown>>;
+  }
+  return [];
+};
+
+const toNumber = (value: unknown): number => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  if (typeof value === 'string') {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+};
+
+const getBusinessId = (record: Record<string, unknown>): number =>
+  toNumber(record.business_id ?? record.business);
 
 export default function BusinessPage() {
   const [allInvoices, setAllInvoices] = useState<Array<Record<string, unknown>>>([]);
@@ -61,33 +83,7 @@ export default function BusinessPage() {
     logo_shape: 'rect',
   });
 
-  useEffect(() => { fetchBusinesses(); }, []);
-  useEffect(() => {
-    fetchFinancialData();
-  }, []);
-
-  const parseList = (payload: unknown): Array<Record<string, unknown>> => {
-    if (Array.isArray(payload)) return payload as Array<Record<string, unknown>>;
-    if (payload && typeof payload === 'object' && 'results' in payload) {
-      const results = (payload as { results?: unknown }).results;
-      if (Array.isArray(results)) return results as Array<Record<string, unknown>>;
-    }
-    return [];
-  };
-
-  const toNumber = (value: unknown): number => {
-    if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
-    if (typeof value === 'string') {
-      const parsed = Number.parseFloat(value);
-      return Number.isFinite(parsed) ? parsed : 0;
-    }
-    return 0;
-  };
-
-  const getBusinessId = (record: Record<string, unknown>): number =>
-    toNumber(record.business_id ?? record.business);
-
-  const fetchFinancialData = async () => {
+  const fetchFinancialData = useCallback(async () => {
     try {
       setIsStatsLoading(true);
       const [invoiceResponse, expenseResponse] = await Promise.all([
@@ -101,34 +97,46 @@ export default function BusinessPage() {
     } finally {
       setIsStatsLoading(false);
     }
-  };
+  }, []);
 
-  const fetchBusinesses = async () => {
+  const fetchBusinesses = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await apiService.business.getAll();
       const businessesData = response.data.results || response.data;
       setBusinesses(businessesData);
-      if (businessesData.length > 0 && !selectedBusiness) {
-        setSelectedBusiness(businessesData[0]);
-        setFormData({
-          business_name: businessesData[0].business_name,
-          email: businessesData[0].email,
-          phone: businessesData[0].phone,
-          address: businessesData[0].address,
-          tax_rate: businessesData[0].tax_rate,
-          logo_shape: businessesData[0].logo_shape || 'rect',
+      if (businessesData.length > 0) {
+        setSelectedBusiness((prev) => {
+          if (prev) return prev;
+          const firstBusiness = businessesData[0];
+          setFormData({
+            business_name: firstBusiness.business_name,
+            email: firstBusiness.email,
+            phone: firstBusiness.phone,
+            address: firstBusiness.address,
+            tax_rate: firstBusiness.tax_rate,
+            logo_shape: firstBusiness.logo_shape || 'rect',
+          });
+          setLogoPreview(getLogoUrl(firstBusiness.logo));
+          setLogoShape((firstBusiness.logo_shape as 'rect' | 'circle') || 'rect');
+          setLogoPreviewFailed(false);
+          return firstBusiness;
         });
-        setLogoPreview(getLogoUrl(businessesData[0].logo));
-        setLogoShape((businessesData[0].logo_shape as 'rect' | 'circle') || 'rect');
-        setLogoPreviewFailed(false);
       }
     } catch {
       toast.error('Failed to load businesses');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchBusinesses();
+  }, [fetchBusinesses]);
+
+  useEffect(() => {
+    fetchFinancialData();
+  }, [fetchFinancialData]);
 
   const handleSelectBusiness = (business: Business) => {
     setSelectedBusiness(business);
@@ -327,7 +335,7 @@ export default function BusinessPage() {
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                          <div className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden border ${
+                          <div className={`relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden border ${
                             business.logo_shape === 'circle' ? 'rounded-full' : 'rounded-xl'
                           } ${
                               isSelected
@@ -335,10 +343,13 @@ export default function BusinessPage() {
                                 : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'
                             }`}>
                               {business.logo && !failedLogoIds.has(business.id) ? (
-                                <img
+                                <Image
                                   src={getLogoUrl(business.logo) || ''}
                                   alt={business.business_name}
-                                  className={`h-full w-full ${business.logo_shape === 'circle' ? 'object-cover' : 'object-contain p-1'}`}
+                                  fill
+                                  unoptimized
+                                  sizes="40px"
+                                  className={business.logo_shape === 'circle' ? 'object-cover' : 'object-contain p-1'}
                                   onError={() => handleLogoLoadError(business.id)}
                                 />
                               ) : (
@@ -416,10 +427,13 @@ export default function BusinessPage() {
                           }`}
                         >
                           {logoPreview && !logoPreviewFailed ? (
-                            <img
+                            <Image
                               src={logoPreview}
                               alt="Logo"
-                              className={`h-full w-full ${logoShape === 'circle' ? 'object-cover' : 'object-contain p-2'}`}
+                              fill
+                              unoptimized
+                              sizes="80px"
+                              className={logoShape === 'circle' ? 'object-cover' : 'object-contain p-2'}
                               onError={() => handleLogoLoadError()}
                             />
                           ) : (
@@ -666,49 +680,37 @@ export default function BusinessPage() {
                   {/* Stats — view mode only */}
                   {!isEditing && (
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                      {[
-                        {
-                          label: 'Total Invoices',
-                          value: isStatsLoading ? '...' : totalInvoices.toLocaleString(),
-                          cardClass: 'border-blue-100 dark:border-blue-900/40 bg-blue-50 dark:bg-blue-950/30',
-                          labelClass: 'text-blue-500 dark:text-blue-400',
-                          valueClass: 'text-blue-700 dark:text-blue-300',
-                        },
-                        {
-                          label: 'Total Income',
-                          value: isStatsLoading ? '...' : formatCurrency(totalIncome),
-                          cardClass: 'border-emerald-100 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/30',
-                          labelClass: 'text-emerald-500 dark:text-emerald-400',
-                          valueClass: 'text-emerald-700 dark:text-emerald-300',
-                        },
-                        {
-                          label: 'Total Expenses',
-                          value: isStatsLoading ? '...' : formatCurrency(totalExpenses),
-                          cardClass: 'border-red-100 dark:border-red-900/40 bg-red-50 dark:bg-red-950/30',
-                          labelClass: 'text-red-500 dark:text-red-400',
-                          valueClass: 'text-red-700 dark:text-red-300',
-                        },
-                        {
-                          label: 'Tax Collected',
-                          value: isStatsLoading ? '...' : formatCurrency(taxCollected),
-                          cardClass: 'border-violet-100 dark:border-violet-900/40 bg-violet-50 dark:bg-violet-950/30',
-                          labelClass: 'text-violet-500 dark:text-violet-400',
-                          valueClass: 'text-violet-700 dark:text-violet-300',
-                        },
-                      ].map((item) => (
-                        <div
-                          key={item.label}
-                          className={`min-w-0 overflow-hidden rounded-2xl border p-5 ${item.cardClass}`}
-                        >
-                          <p className={`text-xs font-medium ${item.labelClass}`}>{item.label}</p>
-                          <p
-                            className={`mt-2 truncate text-lg font-bold leading-tight sm:text-xl xl:text-2xl ${item.valueClass}`}
-                            title={item.value}
-                          >
-                            {item.value}
-                          </p>
-                        </div>
-                      ))}
+                      <MetricCard
+                        label="Total Invoices"
+                        value={isStatsLoading ? '...' : totalInvoices}
+                        subtitle="Issued for this business"
+                        icon={Briefcase}
+                        tone="blue"
+                      />
+                      <MetricCard
+                        label="Total Income"
+                        value={isStatsLoading ? '...' : totalIncome}
+                        subtitle="Collected revenue"
+                        icon={Percent}
+                        tone="emerald"
+                        isCurrency
+                      />
+                      <MetricCard
+                        label="Total Expenses"
+                        value={isStatsLoading ? '...' : totalExpenses}
+                        subtitle="Recorded spend"
+                        icon={Percent}
+                        tone="red"
+                        isCurrency
+                      />
+                      <MetricCard
+                        label="Tax Collected"
+                        value={isStatsLoading ? '...' : taxCollected}
+                        subtitle="VAT amount"
+                        icon={Percent}
+                        tone="violet"
+                        isCurrency
+                      />
                     </div>
                   )}
                 </div>
@@ -755,15 +757,18 @@ export default function BusinessPage() {
             </p>
             <div className="flex items-center gap-5">
               <div
-                className={`flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 transition-colors hover:border-gray-400 dark:hover:border-gray-500 ${
+                className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 transition-colors hover:border-gray-400 dark:hover:border-gray-500 ${
                   logoShape === 'circle' ? 'rounded-full' : 'rounded-2xl'
                 }`}
               >
                 {logoPreview && !logoPreviewFailed ? (
-                  <img
+                  <Image
                     src={logoPreview}
                     alt="Logo preview"
-                    className={`h-full w-full ${logoShape === 'circle' ? 'object-cover' : 'object-contain p-2'}`}
+                    fill
+                    unoptimized
+                    sizes="80px"
+                    className={logoShape === 'circle' ? 'object-cover' : 'object-contain p-2'}
                     onError={() => handleLogoLoadError()}
                   />
                 ) : (

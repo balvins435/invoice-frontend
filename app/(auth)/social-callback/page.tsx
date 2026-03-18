@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ShieldAlert } from 'lucide-react';
 import api, { setAuthTokens } from '@/lib/api';
 import { Spinner } from '@/components/ui/Spinner';
+import { ROUTES } from '@/lib/routes';
+import { session } from '@/lib/session';
 
 const SocialCallbackInner = () => {
   const router = useRouter();
@@ -38,13 +40,13 @@ const SocialCallbackInner = () => {
 
       try {
         const userResponse = await api.get('/me/');
-        localStorage.setItem('user', JSON.stringify(userResponse.data));
+        session.setRawUser(JSON.stringify(userResponse.data));
         if (params.isNew === '1') {
-          router.replace('/onboarding');
+          router.replace(ROUTES.onboarding);
         } else {
-          router.replace('/dashboard');
+          router.replace(ROUTES.dashboard);
         }
-      } catch (err) {
+      } catch {
         setError('Failed to load your profile. Please try again.');
       }
     };
@@ -67,7 +69,7 @@ const SocialCallbackInner = () => {
               </p>
               <button
                 type="button"
-                onClick={() => router.replace('/login')}
+                onClick={() => router.replace(ROUTES.login)}
                 className="mt-4 inline-flex items-center justify-center rounded-xl bg-gray-900 dark:bg-white px-4 py-2 text-sm font-semibold text-white dark:text-gray-900"
               >
                 Back to login

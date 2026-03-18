@@ -1,4 +1,4 @@
-import { Invoice, InvoiceItem, CreateInvoiceData } from './index';
+import { Invoice } from './index';
 
 export type InvoiceStatus = 'draft' | 'sent' | 'paid';
 

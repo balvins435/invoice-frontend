@@ -1,5 +1,3 @@
-import { MonthlyReport } from './index';
-
 export interface ReportFilters {
   year: number;
   month?: number;

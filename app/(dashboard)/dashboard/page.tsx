@@ -18,6 +18,7 @@ import toast from 'react-hot-toast';
 
 import { MetricCard } from '@/components/ui/MetricCard';
 import { apiService } from '@/lib/api';
+import { ROUTES } from '@/lib/routes';
 import { Expense, Invoice } from '@/types';
 import { formatDate, getStatusText } from '@/lib/utils';
 
@@ -82,7 +83,7 @@ export default function DashboardPage() {
   const pathname = usePathname();
 
   useEffect(() => {
-    ['/invoices', '/expenses', '/invoices/create', '/expenses/create', '/reports', '/business']
+    [ROUTES.invoices, ROUTES.expenses, ROUTES.createInvoice, ROUTES.createExpense, ROUTES.reports, ROUTES.business]
       .forEach((href) => router.prefetch(href));
   }, [router]);
 
@@ -180,8 +181,8 @@ export default function DashboardPage() {
 
             <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:ml-4">
               <Link
-                href="/expenses/create"
-                onClick={() => setPendingRoute('/expenses/create')}
+                href={ROUTES.createExpense}
+                onClick={() => setPendingRoute(ROUTES.createExpense)}
                 className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
               >
                 <CreditCard className="h-4 w-4" />
@@ -189,8 +190,8 @@ export default function DashboardPage() {
                 <span className="sm:hidden">Expense</span>
               </Link>
               <Link
-                href="/invoices/create"
-                onClick={() => setPendingRoute('/invoices/create')}
+                href={ROUTES.createInvoice}
+                onClick={() => setPendingRoute(ROUTES.createInvoice)}
                 className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 transition-colors dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
               >
                 <Plus className="h-4 w-4" />
@@ -253,10 +254,10 @@ export default function DashboardPage() {
             <SectionHeader title="Quick Actions" />
             <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
-                { label: 'New Invoice', icon: FileText, href: '/invoices/create', tone: 'blue' },
-                { label: 'Add Expense', icon: CreditCard, href: '/expenses/create', tone: 'emerald' },
-                { label: 'Reports', icon: BarChart3, href: '/reports', tone: 'violet' },
-                { label: 'Business', icon: Building, href: '/business', tone: 'amber' },
+                { label: 'New Invoice', icon: FileText, href: ROUTES.createInvoice, tone: 'blue' },
+                { label: 'Add Expense', icon: CreditCard, href: ROUTES.createExpense, tone: 'emerald' },
+                { label: 'Reports', icon: BarChart3, href: ROUTES.reports, tone: 'violet' },
+                { label: 'Business', icon: Building, href: ROUTES.business, tone: 'amber' },
               ].map(({ label, icon: Icon, href, tone }) => {
                 const toneMap: Record<string, string> = {
                   blue: 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 dark:bg-blue-950/30 dark:border-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-950/50',
@@ -290,8 +291,8 @@ export default function DashboardPage() {
             <div className="flex flex-col items-start justify-between gap-3 border-b border-slate-200 px-6 py-4 dark:border-slate-800 sm:flex-row sm:items-center">
               <SectionHeader title="Recent Invoices" />
               <Link
-                href="/invoices"
-                onClick={() => setPendingRoute('/invoices')}
+                href={ROUTES.invoices}
+                onClick={() => setPendingRoute(ROUTES.invoices)}
                 className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors dark:text-slate-400 dark:hover:text-white"
               >
                 View all <ArrowRight className="h-3 w-3" />
@@ -341,8 +342,8 @@ export default function DashboardPage() {
             <div className="flex flex-col items-start justify-between gap-3 border-b border-slate-200 px-6 py-4 dark:border-slate-800 sm:flex-row sm:items-center">
               <SectionHeader title="Recent Expenses" />
               <Link
-                href="/expenses"
-                onClick={() => setPendingRoute('/expenses')}
+                href={ROUTES.expenses}
+                onClick={() => setPendingRoute(ROUTES.expenses)}
                 className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors dark:text-slate-400 dark:hover:text-white"
               >
                 View all <ArrowRight className="h-3 w-3" />

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,6 +10,7 @@ import { Mail, Lock, ArrowRight, BarChart3, FileText, Building2 } from 'lucide-r
 import toast from 'react-hot-toast';
 import { Input } from '@/components/ui/Input';
 import { authService } from '@/lib/auth';
+import { ROUTES, sanitizeNextRoute } from '@/lib/routes';
 import { Spinner } from '@/components/ui/Spinner';
 
 
@@ -43,6 +44,7 @@ const features = [
 // ── Component ────────────────────────────────────────────────────────────────
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
 
@@ -61,8 +63,9 @@ export default function LoginPage() {
     try {
       const result = await authService.login(data.email, data.password);
       if (result.success) {
+        const next = sanitizeNextRoute(searchParams.get('next'), ROUTES.dashboard);
         toast.success('Welcome back!', { duration: 2000 });
-        setTimeout(() => router.push('/dashboard'), 500);
+        setTimeout(() => router.replace(next), 500);
       } else {
         toast.error(result.error || 'Invalid credentials. Please try again.');
         setValue('password', '');
@@ -194,7 +197,7 @@ export default function LoginPage() {
               />
               <div className="mt-2 flex justify-end">
                 <Link
-                  href="/forgot-password"
+                  href={ROUTES.forgotPassword}
                   className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                   Forgot password?
@@ -224,9 +227,9 @@ export default function LoginPage() {
           {/* Footer links */}
           <div className="mt-8 space-y-3 text-center">
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link
-                href="/register"
+                href={ROUTES.register}
                 onClick={() => setIsSwitching(true)}
                 className="inline-flex items-center gap-2 font-semibold text-gray-900 dark:text-white hover:underline underline-offset-2 transition-colors"
               >

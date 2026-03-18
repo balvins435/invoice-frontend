@@ -20,12 +20,28 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { apiService } from '@/lib/api';
 import { authService } from '@/lib/auth';
+import { ROUTES } from '@/lib/routes';
+import { session } from '@/lib/session';
 import { useTheme } from '@/lib/theme';
 
 type PreferenceState = {
   email_invoice_updates: boolean;
   email_weekly_summary: boolean;
   email_marketing: boolean;
+};
+
+const getErrorPayload = (error: unknown): Record<string, unknown> => {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'response' in error
+  ) {
+    const response = (error as { response?: { data?: unknown } }).response;
+    if (response?.data && typeof response.data === 'object') {
+      return response.data as Record<string, unknown>;
+    }
+  }
+  return {};
 };
 
 export default function SettingsPage() {
@@ -95,14 +111,15 @@ export default function SettingsPage() {
       const updatedUser = response.data;
 
       if (typeof window !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+        session.setRawUser(JSON.stringify(updatedUser));
       }
 
       toast.success('Profile updated successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const data = getErrorPayload(error);
       const msg =
-        error?.response?.data?.detail ||
-        error?.response?.data?.full_name?.[0] ||
+        (typeof data.detail === 'string' ? data.detail : null) ||
+        (Array.isArray(data.full_name) && typeof data.full_name[0] === 'string' ? data.full_name[0] : null) ||
         'Failed to update profile';
       toast.error(msg);
     } finally {
@@ -129,14 +146,14 @@ export default function SettingsPage() {
       setConfirmPassword('');
       toast.success('Password changed successfully. Please log in again.');
       authService.clearAuth();
-      window.location.href = '/login';
-    } catch (error: any) {
-      const data = error?.response?.data;
+      window.location.replace(ROUTES.login);
+    } catch (error: unknown) {
+      const data = getErrorPayload(error);
       const msg =
-        data?.detail ||
-        data?.current_password ||
-        data?.new_password?.[0] ||
-        data?.confirm_password?.[0] ||
+        (typeof data.detail === 'string' ? data.detail : null) ||
+        (typeof data.current_password === 'string' ? data.current_password : null) ||
+        (Array.isArray(data.new_password) && typeof data.new_password[0] === 'string' ? data.new_password[0] : null) ||
+        (Array.isArray(data.confirm_password) && typeof data.confirm_password[0] === 'string' ? data.confirm_password[0] : null) ||
         'Failed to change password';
       toast.error(msg);
     } finally {
@@ -157,7 +174,7 @@ export default function SettingsPage() {
     apiService.auth.updateProfile(payload)
       .then((response) => {
         if (typeof window !== 'undefined') {
-          localStorage.setItem('user', JSON.stringify(response.data));
+          session.setRawUser(JSON.stringify(response.data));
         }
       })
       .catch(() => {

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,6 +13,7 @@ import {
 import toast from 'react-hot-toast';
 import { Input } from '@/components/ui/Input';
 import { authService } from '@/lib/auth';
+import { ROUTES, sanitizeNextRoute } from '@/lib/routes';
 import { Spinner } from '@/components/ui/Spinner';
 
 // ── Schema ───────────────────────────────────────────────────────────────────
@@ -71,6 +72,7 @@ const Rule = ({ met, label }: { met: boolean; label: string }) => (
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
 
@@ -100,8 +102,9 @@ export default function RegisterPage() {
         data.email, data.password, data.first_name, data.last_name
       );
       if (result.success) {
+        const next = sanitizeNextRoute(searchParams.get('next'), ROUTES.dashboard);
         toast.success('Account created! Welcome aboard.');
-        setTimeout(() => router.push('/dashboard'), 1000);
+        setTimeout(() => router.replace(next), 1000);
       } else {
         toast.error(result.error || 'Registration failed. Please try again.');
       }
@@ -214,7 +217,7 @@ export default function RegisterPage() {
             <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">
               Already have one?{' '}
               <Link
-                href="/login"
+                href={ROUTES.login}
                 onClick={() => setIsSwitching(true)}
                 className="inline-flex items-center gap-2 font-semibold text-gray-900 dark:text-white hover:underline underline-offset-2 transition-colors"
               >

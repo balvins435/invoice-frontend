@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
 import { ArrowLeft, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import { Navbar } from '@/components/Navbar';
+import { ROUTES } from '@/lib/routes';
 import { InvoiceForm } from './components/InvoiceForm';
 
 export default function CreateInvoicePage() {
@@ -21,7 +21,7 @@ export default function CreateInvoicePage() {
           {/* ── Header bar ── */}
           <div className="flex items-center justify-between">
             <Link
-              href="/invoices"
+              href={ROUTES.invoices}
               className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -29,7 +29,7 @@ export default function CreateInvoicePage() {
             </Link>
             <div className="flex items-center gap-2">
               <Link
-                href="/invoices"
+                href={ROUTES.invoices}
                 className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Cancel

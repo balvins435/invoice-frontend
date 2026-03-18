@@ -22,24 +22,26 @@ import {
   Sun
 } from 'lucide-react';
 import { authService } from '@/lib/auth';
+import { ROUTES } from '@/lib/routes';
 import { useTheme } from '@/lib/theme';
 import { Spinner } from '@/components/ui/Spinner';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home },
-  { name: 'Business', href: '/business', icon: Building },
-  { name: 'Invoices', href: '/invoices', icon: FileText },
-  { name: 'Payments', href: '/payments', icon: Landmark },
-  { name: 'Messaging', href: '/messaging', icon: MessageCircle },
-  { name: 'Tax', href: '/tax', icon: ShieldCheck },
-  { name: 'Expenses', href: '/expenses', icon: CreditCard },
-  { name: 'Reports', href: '/reports', icon: BarChart3 },
+  { name: 'Dashboard', href: ROUTES.dashboard, icon: Home },
+  { name: 'Business', href: ROUTES.business, icon: Building },
+  { name: 'Invoices', href: ROUTES.invoices, icon: FileText },
+  { name: 'Payments', href: ROUTES.payments, icon: Landmark },
+  { name: 'Messaging', href: ROUTES.messaging, icon: MessageCircle },
+  { name: 'Tax', href: ROUTES.tax, icon: ShieldCheck },
+  { name: 'Expenses', href: ROUTES.expenses, icon: CreditCard },
+  { name: 'Reports', href: ROUTES.reports, icon: BarChart3 },
   
 ];
 
 export const Sidebar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [pendingRoute, setPendingRoute] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
@@ -48,11 +50,10 @@ export const Sidebar: React.FC = () => {
     navigation.forEach((item) => router.prefetch(item.href));
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-    router.push('/login');
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    await authService.logout({ redirectTo: ROUTES.login });
   };
 
   const user = authService.getUser();
@@ -181,7 +182,7 @@ export const Sidebar: React.FC = () => {
               </span>
             </button>
             <Link
-              href="/settings"
+              href={ROUTES.settings}
               className="flex items-center px-4 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors dark:text-slate-300 dark:hover:bg-slate-800"
               onClick={() => setIsOpen(false)}
             >
@@ -190,10 +191,20 @@ export const Sidebar: React.FC = () => {
             </Link>
             <button
               onClick={handleLogout}
+              disabled={isLoggingOut}
               className="flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors dark:text-slate-300 dark:hover:bg-slate-800"
             >
-              <LogOut className="mr-3 h-5 w-5" />
-              Logout
+              {isLoggingOut ? (
+                <>
+                  <Spinner size="sm" />
+                  <span className="ml-3">Signing out...</span>
+                </>
+              ) : (
+                <>
+                  <LogOut className="mr-3 h-5 w-5" />
+                  Logout
+                </>
+              )}
             </button>
           </div>
         </div>

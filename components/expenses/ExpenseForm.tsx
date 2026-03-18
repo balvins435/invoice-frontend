@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import Image from 'next/image';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
@@ -69,7 +70,7 @@ export const ExpenseForm: React.FC<Props> = ({
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
 
-  const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, control, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: initialData || {
       title: '', category: '', amount: 0, expense_date: new Date(),
@@ -77,8 +78,8 @@ export const ExpenseForm: React.FC<Props> = ({
     },
   });
 
-  const taxDeductible = watch('tax_deductible');
-  const selectedCategory = watch('category');
+  const taxDeductible = useWatch({ control, name: 'tax_deductible' });
+  const selectedCategory = useWatch({ control, name: 'category' });
 
   const handleReceipt = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -108,7 +109,7 @@ export const ExpenseForm: React.FC<Props> = ({
       else await createExpense.mutateAsync(payload);
       toast.success(expenseId ? 'Expense updated' : 'Expense created');
       onSuccess?.();
-    } catch (err) {
+    } catch {
       toast.error('Failed to save expense');
     }
   };
@@ -220,8 +221,8 @@ export const ExpenseForm: React.FC<Props> = ({
           <div>
             <label className={labelCls}>Receipt (Optional)</label>
             {preview ? (
-              <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
-                <img src={preview} alt="Receipt" className="h-48 w-full object-contain bg-gray-50 dark:bg-gray-800" />
+              <div className="relative h-48 overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
+                <Image src={preview} alt="Receipt" fill unoptimized className="object-contain" />
                 <button
                   type="button"
                   onClick={() => { setReceipt(null); setPreview(null); }}

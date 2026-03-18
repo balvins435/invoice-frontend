@@ -1,14 +1,54 @@
 import { User } from '@/types';
 import api, { setAuthTokens, clearAuthTokens } from './api';
+import { ROUTES, sanitizeNextRoute } from './routes';
+import { session } from './session';
+
+interface LogoutOptions {
+  redirectTo?: string;
+}
+
+type ApiErrorPayload = {
+  detail?: string;
+  message?: string;
+  error?: string;
+};
+
+type ApiErrorShape = {
+  response?: {
+    status?: number;
+    data?: ApiErrorPayload;
+  };
+  request?: unknown;
+  message?: string;
+  code?: string;
+};
+
+const asApiError = (error: unknown): ApiErrorShape =>
+  (typeof error === 'object' && error !== null ? (error as ApiErrorShape) : {});
+
+const extractErrorMessage = (error: unknown, fallback: string): string => {
+  const apiError = asApiError(error);
+  const payload = apiError.response?.data;
+
+  if (payload?.detail) return payload.detail;
+  if (payload?.message) return payload.message;
+  if (payload?.error) return payload.error;
+  if (apiError.response?.status) return `Server error: ${apiError.response.status}`;
+  if (apiError.request) return 'Cannot connect to server. Please check if backend is running.';
+  if (apiError.message) return apiError.message;
+
+  return fallback;
+};
 
 class AuthService {
   private user: User | null = null;
   private token: string | null = null;
+  private authCheckPromise: Promise<boolean> | null = null;
 
   constructor() {
     if (typeof window !== 'undefined') {
       this.loadUserFromStorage();
-      this.token = localStorage.getItem('access_token');
+      this.token = session.accessToken;
       
       // Set token in axios defaults if exists
       if (this.token) {
@@ -19,7 +59,7 @@ class AuthService {
 
   private loadUserFromStorage() {
     try {
-      const userStr = localStorage.getItem('user');
+      const userStr = session.rawUser;
       if (userStr) {
         this.user = JSON.parse(userStr);
       }
@@ -30,7 +70,7 @@ class AuthService {
 
   private saveUserToStorage(user: User) {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('user', JSON.stringify(user));
+      session.setRawUser(JSON.stringify(user));
       this.user = user;
     }
   }
@@ -70,25 +110,12 @@ class AuthService {
         tokens 
       };
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Login failed:', error);
-      
-      let errorMessage = 'Login failed';
-      
-      if (error.response) {
-        errorMessage = error.response.data?.detail || 
-                      error.response.data?.message ||
-                      error.response.data?.error ||
-                      `Server error: ${error.response.status}`;
-      } else if (error.request) {
-        errorMessage = 'Cannot connect to server. Please check if backend is running.';
-      } else {
-        errorMessage = error.message;
-      }
       
       return { 
         success: false, 
-        error: errorMessage 
+        error: extractErrorMessage(error, 'Login failed'),
       };
     }
   }
@@ -128,31 +155,28 @@ class AuthService {
         user: userData as User,
         tokens,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Registration failed:', error);
-
-      let errorMessage = 'Registration failed';
-
-      if (error.response) {
-        errorMessage = error.response.data?.detail ||
-                      error.response.data?.message ||
-                      error.response.data?.error ||
-                      `Server error: ${error.response.status}`;
-      } else if (error.request) {
-        errorMessage = 'Cannot connect to server. Please check if backend is running.';
-      } else {
-        errorMessage = error.message;
-      }
 
       return {
         success: false,
-        error: errorMessage,
+        error: extractErrorMessage(error, 'Registration failed'),
       };
     }
   }
 
   async checkAuth(): Promise<boolean> {
-    const token = localStorage.getItem('access_token');
+    if (this.authCheckPromise) return this.authCheckPromise;
+    this.authCheckPromise = this.performAuthCheck();
+    try {
+      return await this.authCheckPromise;
+    } finally {
+      this.authCheckPromise = null;
+    }
+  }
+
+  private async performAuthCheck(): Promise<boolean> {
+    const token = session.accessToken;
     
     if (!token) {
       console.log('No token found');
@@ -163,6 +187,14 @@ class AuthService {
     // Set token in axios defaults
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     this.token = token;
+
+    if (session.isAccessTokenExpired()) {
+      const refreshed = await this.refreshToken();
+      if (!refreshed) {
+        this.clearAuth();
+        return false;
+      }
+    }
     
     try {
       console.log('🔍 Checking authentication...');
@@ -173,18 +205,22 @@ class AuthService {
       console.log('✅ Auth check passed for:', userData.email);
       return true;
       
-    } catch (error: any) {
-      console.error('❌ Auth check failed:', error.response?.status || error.message);
+    } catch (error: unknown) {
+      const apiError = asApiError(error);
+      console.error('❌ Auth check failed:', apiError.response?.status || apiError.message || 'unknown');
       
       // If 401, token is invalid/expired
-      if (error.response?.status === 401) {
+      if (apiError.response?.status === 401) {
         console.log('Token expired, attempting refresh...');
         
         try {
           const refreshed = await this.refreshToken();
           if (refreshed) {
-            // Retry auth check
-            return this.checkAuth();
+            const retryResponse = await api.get('/me/');
+            const retryUserData = retryResponse.data;
+            this.saveUserToStorage(retryUserData);
+            console.log('✅ Auth check passed after refresh for:', retryUserData.email);
+            return true;
           }
         } catch (refreshError) {
           console.error('Token refresh failed:', refreshError);
@@ -197,7 +233,7 @@ class AuthService {
   }
 
   async refreshToken(): Promise<boolean> {
-    const refreshToken = localStorage.getItem('refresh_token');
+    const refreshToken = session.refreshToken;
     
     if (!refreshToken) {
       return false;
@@ -211,7 +247,7 @@ class AuthService {
       const { access } = response.data;
       
       // Save new access token
-      localStorage.setItem('access_token', access);
+      session.setAccessToken(access);
       api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
       this.token = access;
       
@@ -224,9 +260,9 @@ class AuthService {
     }
   }
 
-  async logout() {
+  async logout(options: LogoutOptions = {}) {
     try {
-      const refreshToken = localStorage.getItem('refresh_token');
+      const refreshToken = session.refreshToken;
       if (refreshToken) {
         await api.post('/logout/', { refresh: refreshToken });
       }
@@ -237,7 +273,13 @@ class AuthService {
       
       // Redirect to login
       if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+        const next = sanitizeNextRoute(
+          `${window.location.pathname}${window.location.search}`,
+          ROUTES.dashboard
+        );
+        const fallback = `${ROUTES.login}?next=${encodeURIComponent(next)}`;
+        const target = options.redirectTo || fallback;
+        window.location.replace(target);
       }
     }
   }
@@ -246,19 +288,15 @@ class AuthService {
     try {
       const response = await api.post('/password-reset/', { email }, { timeout: 30000 });
       return { success: true, message: response.data?.detail };
-    } catch (error: any) {
+    } catch (error: unknown) {
       let errorMessage = 'Failed to send reset email.';
-      if (error.response) {
-        errorMessage = error.response.data?.detail ||
-                      error.response.data?.message ||
-                      error.response.data?.error ||
-                      `Server error: ${error.response.status}`;
-      } else if (error.request) {
-        errorMessage = error.code === 'ECONNABORTED'
+      const apiError = asApiError(error);
+      if (apiError.request) {
+        errorMessage = apiError.code === 'ECONNABORTED'
           ? 'Request timed out while sending reset email. Please try again.'
           : 'Request could not be completed. Please try again.';
       } else {
-        errorMessage = error.message;
+        errorMessage = extractErrorMessage(error, errorMessage);
       }
       return { success: false, error: errorMessage };
     }
@@ -273,27 +311,14 @@ class AuthService {
         confirm_password,
       });
       return { success: true, message: response.data?.detail };
-    } catch (error: any) {
-      let errorMessage = 'Failed to reset password.';
-      if (error.response) {
-        errorMessage = error.response.data?.detail ||
-                      error.response.data?.message ||
-                      error.response.data?.error ||
-                      `Server error: ${error.response.status}`;
-      } else if (error.request) {
-        errorMessage = 'Cannot connect to server. Please check if backend is running.';
-      } else {
-        errorMessage = error.message;
-      }
-      return { success: false, error: errorMessage };
+    } catch (error: unknown) {
+      return { success: false, error: extractErrorMessage(error, 'Failed to reset password.') };
     }
   }
 
   clearAuth() {
     clearAuthTokens();
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('user');
-      
       // Remove authorization header
       delete api.defaults.headers.common['Authorization'];
     }

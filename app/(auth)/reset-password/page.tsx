@@ -10,6 +10,7 @@ import { Lock, ArrowRight, Loader2, BarChart3 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Input } from '@/components/ui/Input';
 import { authService } from '@/lib/auth';
+import { ROUTES } from '@/lib/routes';
 
 const schema = z.object({
   new_password: z.string().min(8, 'Password must be at least 8 characters'),
@@ -54,7 +55,7 @@ function ResetPasswordForm() {
       );
       if (result.success) {
         toast.success(result.message || 'Password reset successfully.');
-        setTimeout(() => router.push('/login'), 600);
+        setTimeout(() => router.push(ROUTES.login), 600);
       } else {
         toast.error(result.error || 'Failed to reset password.');
       }
@@ -172,7 +173,7 @@ function ResetPasswordForm() {
 
           <div className="mt-6 text-center">
             <Link
-              href="/forgot-password"
+              href={ROUTES.forgotPassword}
               className="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               Request a new reset link

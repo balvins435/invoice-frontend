@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { BarChart3, Building2, CheckCircle2, ArrowRight } from 'lucide-react';
+import { ROUTES } from '@/lib/routes';
 
 export default function OnboardingPage() {
   return (
@@ -39,14 +40,14 @@ export default function OnboardingPage() {
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
-                href="/dashboard/business"
+                href={ROUTES.business}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-4 py-2.5 text-sm font-semibold text-white dark:text-gray-900"
               >
                 Set up business
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
-                href="/dashboard"
+                href={ROUTES.dashboard}
                 className="inline-flex items-center justify-center rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200"
               >
                 Go to dashboard

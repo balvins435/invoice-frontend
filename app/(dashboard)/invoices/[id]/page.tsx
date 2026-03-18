@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { apiService } from '@/lib/api';
+import { ROUTES } from '@/lib/routes';
 import { Invoice } from '@/types';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
@@ -41,7 +42,7 @@ export default function InvoiceDetailPage() {
       <main className="min-h-screen bg-slate-50 p-4 dark:bg-slate-950 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-4xl space-y-6">
           <Link
-            href="/invoices"
+            href={ROUTES.invoices}
             className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />

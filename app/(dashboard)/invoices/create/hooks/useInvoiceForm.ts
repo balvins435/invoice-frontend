@@ -27,6 +27,21 @@ const invoiceSchema = z.object({
 export type InvoiceFormValues = z.input<typeof invoiceSchema>;
 export type InvoiceFormData = z.output<typeof invoiceSchema>;
 
+type ErrorPayload = {
+  detail?: string;
+  message?: string;
+  error?: string;
+};
+
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const response = (error as { response?: { data?: ErrorPayload } }).response;
+    return response?.data?.message || response?.data?.detail || response?.data?.error || fallback;
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+};
+
 export const useInvoiceForm = () => {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,7 +76,7 @@ export const useInvoiceForm = () => {
       setIsLoading(true);
       const response = await apiService.business.getAll();
       setBusinesses(response.data.results || response.data);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load businesses');
     } finally {
       setIsLoading(false);
@@ -126,9 +141,9 @@ export const useInvoiceForm = () => {
       
       return response.data;
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to create invoice:', error);
-      toast.error(error.response?.data?.message || 'Failed to create invoice');
+      toast.error(getErrorMessage(error, 'Failed to create invoice'));
       throw error;
     } finally {
       setIsSubmitting(false);

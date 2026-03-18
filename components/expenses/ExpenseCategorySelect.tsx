@@ -4,10 +4,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   ChevronDown, Search, Check, Briefcase, Coffee, Car, Home,
   ShoppingBag, Wifi, CreditCard, Printer, Heart, BookOpen,
-  Users, Package, PenTool, MoreHorizontal,
+  Users, PenTool, MoreHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { EXPENSE_CATEGORIES, ExpenseCategory } from '@/types/expense';
+import { ExpenseCategory } from '@/types/expense';
 
 // ── Category metadata ─────────────────────────────────────────────────────────
 const CATEGORIES_WITH_META = [
@@ -104,12 +104,15 @@ export const ExpenseCategorySelect: React.FC<Props> = ({
     return () => document.removeEventListener('keydown', handle);
   }, [isOpen, filtered, highlighted, onChange]);
 
-  useEffect(() => { setHighlighted(-1); }, [filtered]);
-
   const handleSelect = (categoryValue: string) => {
     onChange(categoryValue as ExpenseCategory);
     setIsOpen(false);
     setSearchQuery('');
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setHighlighted(-1);
   };
 
   const Icon = selected?.icon || Briefcase;
@@ -127,7 +130,12 @@ export const ExpenseCategorySelect: React.FC<Props> = ({
       {/* Trigger */}
       <button
         type="button"
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={() => {
+          if (!disabled) {
+            setIsOpen(!isOpen);
+            setHighlighted(-1);
+          }
+        }}
         disabled={disabled}
         className={cn(
           'flex h-10 w-full items-center justify-between rounded-xl border px-3 py-2 text-sm transition-colors',
@@ -170,7 +178,7 @@ export const ExpenseCategorySelect: React.FC<Props> = ({
                 type="text"
                 placeholder="Search categories…"
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={e => handleSearchChange(e.target.value)}
                 className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 py-2 pl-9 pr-3 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white"
               />
             </div>

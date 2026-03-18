@@ -1,6 +1,26 @@
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { API_URL } from './config';
+import { ROUTES, sanitizeNextRoute } from './routes';
+import { session } from './session';
 type TokenRefreshResponse = { access: string };
+type JsonPayload = Record<string, unknown>;
+type QueryParams = object;
+type RequestBody = JsonPayload | FormData;
+
+interface RetriableRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
+
+let refreshInFlight: Promise<string | null> | null = null;
+
+const redirectToLogin = () => {
+  if (typeof window === 'undefined') return;
+  const next = sanitizeNextRoute(`${window.location.pathname}${window.location.search}`, ROUTES.dashboard);
+  const target = `${ROUTES.login}?next=${encodeURIComponent(next)}`;
+  if (window.location.pathname !== ROUTES.login) {
+    window.location.replace(target);
+  }
+};
 
 // Create axios instance
 const api = axios.create({
@@ -14,7 +34,7 @@ const api = axios.create({
 // Request interceptor for adding auth token
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('access_token');
+    const token = session.accessToken;
     
     if (token) {
       config.headers.set('Authorization', `Bearer ${token}`);
@@ -37,45 +57,57 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as any;
+    const originalRequest = error.config as RetriableRequestConfig;
+    if (!originalRequest) return Promise.reject(error);
+
+    const isAuthEndpoint = ['/login/', '/register/', '/refresh/', '/logout/']
+      .some((path) => originalRequest.url?.includes(path));
     
     // If error is 401 and we haven't tried to refresh yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
       
       try {
-        const refreshToken = localStorage.getItem('refresh_token');
+        const refreshToken = session.refreshToken;
         
         if (!refreshToken) {
           throw new Error('No refresh token available');
         }
         
         // Attempt to refresh the token
-        const response = await axios.post<TokenRefreshResponse>(
-          `${API_URL}/refresh/`,
-          { refresh: refreshToken }
-        );
-        
-        const { access } = response.data;
-        
-        // Save new access token
-        localStorage.setItem('access_token', access);
+        if (!refreshInFlight) {
+          refreshInFlight = axios
+            .post<TokenRefreshResponse>(`${API_URL}/refresh/`, { refresh: refreshToken })
+            .then((response) => {
+              const { access } = response.data;
+              session.setAccessToken(access);
+              return access;
+            })
+            .catch(() => null)
+            .finally(() => {
+              refreshInFlight = null;
+            });
+        }
+
+        const access = await refreshInFlight;
+        if (!access) {
+          throw new Error('Refresh token request failed');
+        }
         
         // Update the original request with new token
-        originalRequest.headers.Authorization = `Bearer ${access}`;
+        if (typeof originalRequest.headers?.set === 'function') {
+          originalRequest.headers.set('Authorization', `Bearer ${access}`);
+        } else {
+          originalRequest.headers = originalRequest.headers || {};
+          (originalRequest.headers as Record<string, string>).Authorization = `Bearer ${access}`;
+        }
         
         // Retry the original request
         return api(originalRequest);
       } catch (refreshError) {
         // If refresh fails, clear tokens and redirect to login
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
-        
-        // Redirect to login page
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
+        session.clear();
+        redirectToLogin();
         
         return Promise.reject(refreshError);
       }
@@ -89,15 +121,15 @@ api.interceptors.response.use(
 export const apiService = {
   // Auth endpoints
   auth: {
-    register: (data: any) => api.post('/register/', data),
-    login: (data: any) => api.post('/login/', data),
+    register: (data: RequestBody) => api.post('/register/', data),
+    login: (data: RequestBody) => api.post('/login/', data),
     logout: (p0: { refresh: string; }) => api.post('/logout/', p0),
     getCurrentUser: () => api.get('/me/'),
     refreshToken: (refresh: string) => 
       api.post('/refresh/', { refresh }),
-    changePassword: (data: any) => 
+    changePassword: (data: RequestBody) => 
       api.put('/me/change-password/', data),
-    updateProfile: (data: any) => 
+    updateProfile: (data: RequestBody) => 
       api.patch('/me/update-profile/', data),
   },
 
@@ -105,17 +137,17 @@ export const apiService = {
   business: {
     getAll: () => api.get('/business/'),
     getById: (id: number) => api.get(`/business/${id}/`),
-    create: (data: any) => api.post('/business/', data),
-    update: (id: number, data: any) => api.patch(`/business/${id}/`, data),
+    create: (data: RequestBody) => api.post('/business/', data),
+    update: (id: number, data: RequestBody) => api.patch(`/business/${id}/`, data),
     delete: (id: number) => api.delete(`/business/${id}/`),
   },
 
   // Invoice endpoints
   invoices: {
-    getAll: (params?: any) => api.get('/invoice/', { params }),
+    getAll: (params?: QueryParams) => api.get('/invoice/', { params }),
     getById: (id: number) => api.get(`/invoice/${id}/`),
-    create: (data: any) => api.post('/invoice/', data),
-    update: (id: number, data: any) => api.patch(`/invoice/${id}/`, data),
+    create: (data: RequestBody) => api.post('/invoice/', data),
+    update: (id: number, data: RequestBody) => api.patch(`/invoice/${id}/`, data),
     delete: (id: number) => api.delete(`/invoice/${id}/`),
     markAsPaid: (id: number) => api.post(`/invoice/${id}/mark_paid/`),
     sendEmail: (id: number) => api.post(`/invoice/${id}/send_email/`),
@@ -127,17 +159,17 @@ export const apiService = {
 
   // Expense endpoints
   expenses: {
-    getAll: (params?: any) => api.get('/expenses/', { params }),
+    getAll: (params?: QueryParams) => api.get('/expenses/', { params }),
     getById: (id: number) => api.get(`/expenses/${id}/`),
-    create: (data: any) => api.post('/expenses/', data),
-    update: (id: number, data: any) => api.patch(`/expenses/${id}/`, data),
+    create: (data: RequestBody) => api.post('/expenses/', data),
+    update: (id: number, data: RequestBody) => api.patch(`/expenses/${id}/`, data),
     delete: (id: number) => api.delete(`/expenses/${id}/`),
     getCategories: () => api.get('/expenses/categories/'),
   },
 
   // Payments endpoints
   payments: {
-    getTransactions: (params?: any) => api.get('/payments/transactions/', { params }),
+    getTransactions: (params?: QueryParams) => api.get('/payments/transactions/', { params }),
     getTransactionById: (id: number) => api.get(`/payments/transactions/${id}/`),
     initiateStkPush: (data: { invoice_id: number; phone_number: string; amount?: string | number }) =>
       api.post('/payments/transactions/initiate-stk/', data),
@@ -149,43 +181,40 @@ export const apiService = {
 
   // Messaging endpoints
   messaging: {
-    getWhatsAppMessages: (params?: any) => api.get('/messaging/whatsapp/', { params }),
+    getWhatsAppMessages: (params?: QueryParams) => api.get('/messaging/whatsapp/', { params }),
     sendInvoiceWhatsApp: (data: { invoice_id: number; phone_number: string; message?: string }) =>
       api.post('/messaging/whatsapp/send-invoice/', data),
   },
 
   // Tax endpoints
   tax: {
-    getSubmissions: (params?: any) => api.get('/tax/submissions/', { params }),
+    getSubmissions: (params?: QueryParams) => api.get('/tax/submissions/', { params }),
     submitInvoice: (data: { invoice_id: number }) => api.post('/tax/submissions/submit-invoice/', data),
   },
 
   // Report endpoints
   reports: {
-    getMonthlyReport: (params: any) => 
+    getMonthlyReport: (params: QueryParams) => 
       api.get('/reports/monthly/', { params }),
-    getTaxSummary: (params: any) => 
+    getTaxSummary: (params: QueryParams) => 
       api.get('/reports/tax-summary/', { params }),
     getDashboardStats: () => api.get('/reports/dashboard-stats/'),
-    downloadPDF: (params: any) =>
+    downloadPDF: (params: QueryParams) =>
       api.get('/reports/pdf/', { params, responseType: 'blob' }),
   },
 };
 
 // Helper functions
 export const setAuthTokens = (tokens: { access: string; refresh: string }) => {
-  localStorage.setItem('access_token', tokens.access);
-  localStorage.setItem('refresh_token', tokens.refresh);
+  session.setTokens(tokens.access, tokens.refresh);
 };
 
 export const clearAuthTokens = () => {
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('refresh_token');
-  localStorage.removeItem('user');
+  session.clear();
 };
 
 export const getAuthHeaders = () => {
-  const token = localStorage.getItem('access_token');
+  const token = session.accessToken;
   return {
     Authorization: `Bearer ${token}`,
   };

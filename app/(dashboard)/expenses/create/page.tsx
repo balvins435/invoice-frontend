@@ -7,6 +7,7 @@ import { ArrowLeft, Receipt, TrendingDown, Lightbulb, CheckCircle2 } from 'lucid
 import { Navbar } from '@/components/Navbar';
 import { ExpenseForm } from '@/components/expenses/ExpenseForm';
 import { apiService } from '@/lib/api';
+import { ROUTES } from '@/lib/routes';
 import { Business } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -25,7 +26,7 @@ export default function CreateExpensePage() {
     fetch();
   }, []);
 
-  const handleSuccess = () => router.push('/expenses');
+  const handleSuccess = () => router.push(ROUTES.expenses);
   const handleCancel  = () => router.back();
 
   return (
@@ -41,7 +42,7 @@ export default function CreateExpensePage() {
           {/* ── Header bar ── */}
           <div className="flex items-center justify-between">
             <Link
-              href="/expenses"
+              href={ROUTES.expenses}
               className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -49,7 +50,7 @@ export default function CreateExpensePage() {
             </Link>
             <div className="flex items-center gap-2">
               <Link
-                href="/expenses"
+                href={ROUTES.expenses}
                 className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Cancel

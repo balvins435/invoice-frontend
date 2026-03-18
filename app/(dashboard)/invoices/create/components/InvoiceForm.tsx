@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/Input';
 import { InvoiceItemsTable } from './InvoiceItemsTable';
 import { InvoiceSummary } from './InvoiceSummary';
 import { apiService } from '@/lib/api';
+import { ROUTES } from '@/lib/routes';
 import { Business } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -126,9 +127,17 @@ export const InvoiceForm: React.FC = () => {
       }
 
       toast.success(status === 'draft' ? 'Invoice saved as draft!' : 'Invoice created and sent!');
-      setTimeout(() => router.push('/invoices'), 1000);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to create invoice');
+      setTimeout(() => router.push(ROUTES.invoices), 1000);
+    } catch (err: unknown) {
+      const errorMessage = (
+        typeof err === 'object' &&
+        err !== null &&
+        'response' in err &&
+        typeof (err as { response?: { data?: { message?: string } } }).response?.data?.message === 'string'
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : 'Failed to create invoice'
+      ) ?? 'Failed to create invoice';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -204,7 +213,7 @@ export const InvoiceForm: React.FC = () => {
         <div>
           <div className="mb-4">
             <p className="text-sm font-semibold text-gray-900 dark:text-white">Invoice Items</p>
-            <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">Add the products or services you're billing for</p>
+            <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">Add the products or services you&apos;re billing for</p>
           </div>
           <InvoiceItemsTable
             items={items} register={register} errors={errors}

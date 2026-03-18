@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/Input';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { Modal } from '@/components/ui/Modal';
 import { apiService } from '@/lib/api';
+import { ROUTES } from '@/lib/routes';
 import { Expense, ExpenseFilters, ExpenseCategory, EXPENSE_CATEGORIES } from '@/types';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -84,7 +85,7 @@ export default function ExpensesPage() {
   }, [filters]);
 
   useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
-  useEffect(() => { router.prefetch('/expenses/create'); }, [router]);
+  useEffect(() => { router.prefetch(ROUTES.createExpense); }, [router]);
 
   const handleDelete = async () => {
     if (!selectedExpense) return;
@@ -197,7 +198,7 @@ export default function ExpensesPage() {
                 Export CSV
               </button>
               <Link
-                href="/expenses/create"
+                href={ROUTES.createExpense}
                 className="inline-flex items-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-4 py-2.5 text-sm font-medium text-white dark:text-gray-900 shadow-sm hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
               >
                 <Plus className="h-4 w-4" />
@@ -349,7 +350,7 @@ export default function ExpensesPage() {
                 </p>
                 {!searchQuery && (
                   <Link
-                    href="/expenses/create"
+                    href={ROUTES.createExpense}
                     className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-4 py-2.5 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
                   >
                     <Plus className="h-4 w-4" /> Add Expense

@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Bell, Search, User, ChevronDown } from 'lucide-react';
 import { authService } from '@/lib/auth';
+import { ROUTES } from '@/lib/routes';
 
 interface NavbarProps {
   title: string;
@@ -11,6 +13,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ title, subtitle }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const user = authService.getUser();
 
   return (
@@ -70,24 +73,30 @@ export const Navbar: React.FC<NavbarProps> = ({ title, subtitle }) => {
                     </p>
                     <p className="text-xs text-gray-500 truncate dark:text-slate-400">{user?.email}</p>
                   </div>
-                  <a
-                    href="/dashboard/profile"
+                  <Link
+                    href={ROUTES.settings}
+                    onClick={() => setShowUserMenu(false)}
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-slate-200 dark:hover:bg-slate-700"
                   >
                     Your Profile
-                  </a>
-                  <a
-                    href="/dashboard/settings"
+                  </Link>
+                  <Link
+                    href={ROUTES.settings}
+                    onClick={() => setShowUserMenu(false)}
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-slate-200 dark:hover:bg-slate-700"
                   >
                     Settings
-                  </a>
+                  </Link>
                   <div className="border-t border-gray-100 dark:border-slate-700">
                     <button
-                      onClick={() => authService.logout()}
+                      disabled={isLoggingOut}
+                      onClick={async () => {
+                        setIsLoggingOut(true);
+                        await authService.logout({ redirectTo: ROUTES.login });
+                      }}
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-slate-200 dark:hover:bg-slate-700"
                     >
-                      Sign out
+                      {isLoggingOut ? 'Signing out...' : 'Sign out'}
                     </button>
                   </div>
                 </div>
