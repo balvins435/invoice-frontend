@@ -198,7 +198,7 @@ export const apiService = {
       api.get('/reports/monthly/', { params }),
     getTaxSummary: (params: QueryParams) => 
       api.get('/reports/tax-summary/', { params }),
-    getDashboardStats: () => api.get('/reports/dashboard-stats/'),
+    getDashboardStats: (params: QueryParams) => api.get('/reports/dashboard-stats/', { params }),
     downloadPDF: (params: QueryParams) =>
       api.get('/reports/pdf/', { params, responseType: 'blob' }),
   },

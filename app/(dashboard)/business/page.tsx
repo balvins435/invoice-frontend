@@ -25,6 +25,7 @@ import { MetricCard } from '@/components/ui/MetricCard';
 import { Modal } from '@/components/ui/Modal';
 import { apiService } from '@/lib/api';
 import { API_ORIGIN } from '@/lib/config';
+import { getStoredActiveBusinessId, setStoredActiveBusinessId } from '@/lib/hooks/useActiveBusiness';
 import { Business } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -107,8 +108,10 @@ export default function BusinessPage() {
       setBusinesses(businessesData);
       if (businessesData.length > 0) {
         setSelectedBusiness((prev) => {
-          if (prev) return prev;
-          const firstBusiness = businessesData[0];
+          if (prev && businessesData.some((business: Business) => business.id === prev.id)) return prev;
+          const storedBusinessId = getStoredActiveBusinessId();
+          const firstBusiness =
+            businessesData.find((business: Business) => business.id === storedBusinessId) || businessesData[0];
           setFormData({
             business_name: firstBusiness.business_name,
             email: firstBusiness.email,
@@ -120,6 +123,7 @@ export default function BusinessPage() {
           setLogoPreview(getLogoUrl(firstBusiness.logo));
           setLogoShape((firstBusiness.logo_shape as 'rect' | 'circle') || 'rect');
           setLogoPreviewFailed(false);
+          setStoredActiveBusinessId(firstBusiness.id);
           return firstBusiness;
         });
       }
@@ -139,6 +143,7 @@ export default function BusinessPage() {
   }, [fetchFinancialData]);
 
   const handleSelectBusiness = (business: Business) => {
+    setStoredActiveBusinessId(business.id);
     setSelectedBusiness(business);
     setIsEditing(false);
     setLogoShape('rect');
@@ -209,8 +214,10 @@ export default function BusinessPage() {
       fetchBusinesses();
       if (businesses.length > 1) {
         const remaining = businesses.filter((b) => b.id !== selectedBusiness.id);
+        setStoredActiveBusinessId(remaining[0]?.id ?? null);
         setSelectedBusiness(remaining[0]);
       } else {
+        setStoredActiveBusinessId(null);
         setSelectedBusiness(null);
       }
     } catch {

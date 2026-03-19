@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Plus, Search, Filter, Download, Edit, Trash2,
   TrendingDown, PieChart, Tag, X, ChevronDown,
@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/Input';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { Modal } from '@/components/ui/Modal';
 import { apiService } from '@/lib/api';
+import { useActiveBusiness } from '@/lib/hooks/useActiveBusiness';
 import { ROUTES } from '@/lib/routes';
 import { Expense, ExpenseFilters, ExpenseCategory, EXPENSE_CATEGORIES } from '@/types';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -73,19 +74,40 @@ export default function ExpensesPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const router   = useRouter();
+  const {
+    activeBusiness,
+    activeBusinessId,
+    error: businessError,
+    isLoading: isBusinessLoading,
+  } = useActiveBusiness();
+
+  const effectiveFilters = useMemo(
+    () => ({
+      ...filters,
+      ...(activeBusinessId ? { business_id: activeBusinessId } : {}),
+    }),
+    [activeBusinessId, filters]
+  );
 
   const fetchExpenses = useCallback(async () => {
+    if (isBusinessLoading) return;
+
     try {
       setIsLoading(true);
-      const res     = await apiService.expenses.getAll(filters);
+      const res     = await apiService.expenses.getAll(effectiveFilters);
       const payload = res.data;
       setExpenses(Array.isArray(payload) ? payload : Array.isArray(payload?.results) ? payload.results : []);
     } catch { toast.error('Failed to load expenses'); }
     finally  { setIsLoading(false); }
-  }, [filters]);
+  }, [effectiveFilters, isBusinessLoading]);
 
   useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
   useEffect(() => { router.prefetch(ROUTES.createExpense); }, [router]);
+  useEffect(() => {
+    if (businessError) {
+      toast.error('Failed to load businesses');
+    }
+  }, [businessError]);
 
   const handleDelete = async () => {
     if (!selectedExpense) return;
@@ -188,6 +210,11 @@ export default function ExpensesPage() {
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Expenses</h1>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Track and manage your business expenses</p>
+              {activeBusiness ? (
+                <p className="mt-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Showing <span className="text-gray-900 dark:text-white">{activeBusiness.display_name || activeBusiness.business_name}</span>
+                </p>
+              ) : null}
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -213,7 +240,7 @@ export default function ExpensesPage() {
             <MetricCard
               label="Total Expenses"
               value={totalAmount}
-              subtitle={`${expenses.length} records`}
+              subtitle={activeBusiness ? `${expenses.length} records for active business` : `${expenses.length} records`}
               icon={TrendingDown}
               tone="red"
               isCurrency

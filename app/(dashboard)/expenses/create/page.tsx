@@ -7,6 +7,7 @@ import { ArrowLeft, Receipt, TrendingDown, Lightbulb, CheckCircle2 } from 'lucid
 import { Navbar } from '@/components/Navbar';
 import { ExpenseForm } from '@/components/expenses/ExpenseForm';
 import { apiService } from '@/lib/api';
+import { getStoredActiveBusinessId } from '@/lib/hooks/useActiveBusiness';
 import { ROUTES } from '@/lib/routes';
 import { Business } from '@/types';
 import toast from 'react-hot-toast';
@@ -20,7 +21,15 @@ export default function CreateExpensePage() {
     const fetch = async () => {
       try {
         const res = await apiService.business.getAll();
-        setBusinesses(res.data.results || res.data);
+        const businessList = res.data.results || res.data;
+        setBusinesses(businessList);
+
+        const storedBusinessId = getStoredActiveBusinessId();
+        const preferredBusiness =
+          businessList.find((business: Business) => business.id === storedBusinessId) ||
+          (businessList.length === 1 ? businessList[0] : null);
+
+        setSelectedBusinessId(preferredBusiness?.id ?? null);
       } catch { toast.error('Failed to load businesses'); }
     };
     fetch();

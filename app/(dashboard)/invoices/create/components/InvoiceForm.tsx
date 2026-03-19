@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/Input';
 import { InvoiceItemsTable } from './InvoiceItemsTable';
 import { InvoiceSummary } from './InvoiceSummary';
 import { apiService } from '@/lib/api';
+import { getStoredActiveBusinessId } from '@/lib/hooks/useActiveBusiness';
 import { ROUTES } from '@/lib/routes';
 import { Business } from '@/types';
 import { cn } from '@/lib/utils';
@@ -77,21 +78,31 @@ export const InvoiceForm: React.FC = () => {
   const items = watch('items');
   const businessId = watch('business_id');
 
-  useEffect(() => { fetchBusinesses(); }, []);
+  const fetchBusinesses = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const res = await apiService.business.getAll();
+      const businessList = res.data.results || res.data;
+      setBusinesses(businessList);
+
+      const storedBusinessId = getStoredActiveBusinessId();
+      const preferredBusiness =
+        businessList.find((business: Business) => business.id === storedBusinessId) ||
+        (businessList.length === 1 ? businessList[0] : null);
+
+      if (preferredBusiness) {
+        setValue('business_id', String(preferredBusiness.id), { shouldValidate: true });
+      }
+    } catch { toast.error('Failed to load businesses'); }
+    finally  { setIsLoading(false); }
+  }, [setValue]);
+
+  useEffect(() => { fetchBusinesses(); }, [fetchBusinesses]);
   useEffect(() => {
     if (businessId && businesses.length > 0) {
       setSelectedBusiness(businesses.find(b => b.id.toString() === businessId) || null);
     }
   }, [businessId, businesses]);
-
-  const fetchBusinesses = async () => {
-    try {
-      setIsLoading(true);
-      const res = await apiService.business.getAll();
-      setBusinesses(res.data.results || res.data);
-    } catch { toast.error('Failed to load businesses'); }
-    finally  { setIsLoading(false); }
-  };
 
   const calculateItemTotal = (index: number, quantity: number, unitPrice: number) => {
     setValue(`items.${index}.total`, quantity * unitPrice);

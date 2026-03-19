@@ -172,6 +172,7 @@ export interface DashboardStats {
   net_profit: number;
   pending_invoices: number;
   overdue_invoices: number;
+  total_clients: number;
   recent_invoices: Invoice[];
   recent_expenses: Expense[];
   monthly_trends: MonthlyReport[];

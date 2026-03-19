@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/Input';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { Modal } from '@/components/ui/Modal';
 import { apiService } from '@/lib/api';
+import { useActiveBusiness } from '@/lib/hooks/useActiveBusiness';
 import { ROUTES } from '@/lib/routes';
 import { Invoice, InvoiceFilters } from '@/types';
 import { formatCurrency, formatDate, getStatusText } from '@/lib/utils';
@@ -108,22 +109,44 @@ export default function InvoicesPage() {
   const [isPaymentSubmitting, setIsPaymentSubmitting] = useState(false);
   const [optimisticPayments, setOptimisticPayments] = useState<Record<number, { status: 'pending' | 'partial' | 'paid'; balance_due?: number; amount_paid?: number }>>({});
   const router = useRouter();
+  const {
+    activeBusiness,
+    activeBusinessId,
+    error: businessError,
+    isLoading: isBusinessLoading,
+  } = useActiveBusiness();
+
+  const effectiveFilters = useMemo(
+    () => ({
+      ...filters,
+      ...(activeBusinessId ? { business_id: activeBusinessId } : {}),
+    }),
+    [activeBusinessId, filters]
+  );
 
   const fetchInvoices = useCallback(async () => {
+    if (isBusinessLoading) return;
+
     try {
       setIsLoading(true);
-      const response = await apiService.invoices.getAll(filters);
+      const response = await apiService.invoices.getAll(effectiveFilters);
       setInvoices(parseList<Invoice>(response.data));
     } catch {
       toast.error('Failed to load invoices');
     } finally {
       setIsLoading(false);
     }
-  }, [filters]);
+  }, [effectiveFilters, isBusinessLoading]);
 
   useEffect(() => {
     fetchInvoices();
   }, [fetchInvoices]);
+
+  useEffect(() => {
+    if (businessError) {
+      toast.error('Failed to load businesses');
+    }
+  }, [businessError]);
 
   useEffect(() => {
     router.prefetch(ROUTES.createInvoice);
@@ -395,6 +418,11 @@ export default function InvoicesPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Billing</p>
                 <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Invoices</h1>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Generate invoices, send them, collect payments, and sync tax details.</p>
+                {activeBusiness ? (
+                  <p className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Showing <span className="text-slate-900 dark:text-white">{activeBusiness.display_name || activeBusiness.business_name}</span>
+                  </p>
+                ) : null}
               </div>
 
               <Link
@@ -410,7 +438,7 @@ export default function InvoicesPage() {
             <MetricCard
               label="Total Invoices"
               value={summary.total}
-              subtitle="All invoice records"
+              subtitle={activeBusiness ? 'Active business records' : 'All invoice records'}
               icon={FileText}
               tone="slate"
             />
