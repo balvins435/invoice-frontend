@@ -73,6 +73,7 @@ const Rule = ({ met, label }: { met: boolean; label: string }) => (
 export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const nextRoute = sanitizeNextRoute(searchParams?.get('next') ?? null, ROUTES.dashboard);
   const [isLoading, setIsLoading] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
 
@@ -102,9 +103,8 @@ export default function RegisterPage() {
         data.email, data.password, data.first_name, data.last_name
       );
       if (result.success) {
-        const next = sanitizeNextRoute(searchParams.get('next'), ROUTES.dashboard);
         toast.success('Account created! Welcome aboard.');
-        setTimeout(() => router.replace(next), 1000);
+        setTimeout(() => router.replace(nextRoute), 1000);
       } else {
         toast.error(result.error || 'Registration failed. Please try again.');
       }

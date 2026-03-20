@@ -15,11 +15,11 @@ const SocialCallbackInner = () => {
 
   const params = useMemo(() => {
     return {
-      access: searchParams.get('access'),
-      refresh: searchParams.get('refresh'),
-      provider: searchParams.get('provider'),
-      isNew: searchParams.get('is_new'),
-      error: searchParams.get('error'),
+      access: searchParams?.get('access') ?? null,
+      refresh: searchParams?.get('refresh') ?? null,
+      provider: searchParams?.get('provider') ?? null,
+      isNew: searchParams?.get('is_new') ?? null,
+      error: searchParams?.get('error') ?? null,
     };
   }, [searchParams]);
 

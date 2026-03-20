@@ -45,6 +45,7 @@ const features = [
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const nextRoute = sanitizeNextRoute(searchParams?.get('next') ?? null, ROUTES.dashboard);
   const [isLoading, setIsLoading] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
 
@@ -63,9 +64,8 @@ export default function LoginPage() {
     try {
       const result = await authService.login(data.email, data.password);
       if (result.success) {
-        const next = sanitizeNextRoute(searchParams.get('next'), ROUTES.dashboard);
         toast.success('Welcome back!', { duration: 2000 });
-        setTimeout(() => router.replace(next), 500);
+        setTimeout(() => router.replace(nextRoute), 500);
       } else {
         toast.error(result.error || 'Invalid credentials. Please try again.');
         setValue('password', '');

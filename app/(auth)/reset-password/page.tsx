@@ -27,8 +27,8 @@ function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
 
-  const uid = searchParams.get('uid') || '';
-  const token = searchParams.get('token') || '';
+  const uid = searchParams?.get('uid') ?? '';
+  const token = searchParams?.get('token') ?? '';
   const isLinkValid = useMemo(() => uid.length > 0 && token.length > 0, [uid, token]);
 
   const {

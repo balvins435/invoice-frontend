@@ -12,6 +12,7 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 
 export default function InvoiceDetailPage() {
   const params = useParams<{ id: string }>();
+  const invoiceId = params?.id;
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +21,11 @@ export default function InvoiceDetailPage() {
     const fetchInvoice = async () => {
       try {
         setIsLoading(true);
-        const response = await apiService.invoices.getById(Number(params.id));
+        if (!invoiceId) {
+          setError('Invoice ID is missing.');
+          return;
+        }
+        const response = await apiService.invoices.getById(Number(invoiceId));
         setInvoice(response.data);
         setError(null);
       } catch {
@@ -30,10 +35,13 @@ export default function InvoiceDetailPage() {
       }
     };
 
-    if (params.id) {
+    if (invoiceId) {
       fetchInvoice();
+    } else {
+      setIsLoading(false);
+      setError('Invoice ID is missing.');
     }
-  }, [params.id]);
+  }, [invoiceId]);
 
   return (
     <>
