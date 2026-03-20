@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { MessageCircle, RefreshCw } from 'lucide-react';
+import { Building2, MessageCircle, RefreshCw } from 'lucide-react';
 
 import { Navbar } from '@/components/Navbar';
+import { ActiveBusinessSelector } from '@/components/business/ActiveBusinessSelector';
 import { apiService } from '@/lib/api';
+import { useActiveBusiness } from '@/lib/hooks/useActiveBusiness';
 import { Invoice, WhatsAppMessage } from '@/types';
 import { formatDate } from '@/lib/utils';
 
@@ -30,6 +32,22 @@ const getApiError = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
+const BusinessStateCard = ({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) => (
+  <section className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center shadow-sm dark:border-gray-700 dark:bg-gray-900">
+    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 dark:bg-gray-800">
+      <Building2 className="h-6 w-6 text-gray-500 dark:text-gray-300" />
+    </div>
+    <h2 className="mt-4 text-xl font-semibold text-gray-900 dark:text-white">{title}</h2>
+    <p className="mx-auto mt-2 max-w-2xl text-sm text-gray-500 dark:text-gray-400">{description}</p>
+  </section>
+);
+
 export default function MessagingPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [messages, setMessages] = useState<WhatsAppMessage[]>([]);
@@ -40,38 +58,77 @@ export default function MessagingPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [messageText, setMessageText] = useState('');
 
+  const {
+    businesses,
+    activeBusiness,
+    activeBusinessId,
+    setActiveBusinessId,
+    hasBusinesses,
+    requiresSelection,
+    isLoading: isBusinessLoading,
+    error: businessError,
+  } = useActiveBusiness();
+
+  const businessName = activeBusiness?.display_name || activeBusiness?.business_name;
+  const showBusinessSelector = businesses.length > 1;
+
   const availableInvoices = useMemo(
     () => invoices.filter((invoice) => invoice.status === 'draft' || invoice.status === 'sent'),
     [invoices]
   );
 
-  const loadData = async () => {
+  useEffect(() => {
+    if (businessError) {
+      toast.error('Failed to load businesses');
+    }
+  }, [businessError]);
+
+  const syncSelectedInvoice = useCallback((invoiceList: Invoice[]) => {
+    const firstAvailable = invoiceList.find((item) => item.status !== 'paid');
+    const selectedInvoice =
+      invoiceList.find((item) => String(item.id) === invoiceId && item.status !== 'paid') || firstAvailable;
+
+    if (!selectedInvoice) {
+      setInvoiceId('');
+      return;
+    }
+
+    setInvoiceId(String(selectedInvoice.id));
+  }, [invoiceId]);
+
+  const loadData = useCallback(async () => {
+    if (isBusinessLoading) return;
+
+    if (!hasBusinesses || requiresSelection) {
+      setInvoices([]);
+      setMessages([]);
+      setInvoiceId('');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
+      const params = activeBusinessId ? { business_id: activeBusinessId } : undefined;
       const [invoiceRes, messageRes] = await Promise.all([
-        apiService.invoices.getAll(),
-        apiService.messaging.getWhatsAppMessages(),
+        apiService.invoices.getAll(params),
+        apiService.messaging.getWhatsAppMessages(params),
       ]);
       const invoiceList = parseList<Invoice>(invoiceRes.data);
       const messageList = parseList<WhatsAppMessage>(messageRes.data);
       setInvoices(invoiceList);
       setMessages(messageList);
-
-      if (!invoiceId && invoiceList.length > 0) {
-        const selectable = invoiceList.find((item) => item.status !== 'paid');
-        if (selectable) setInvoiceId(String(selectable.id));
-      }
+      syncSelectedInvoice(invoiceList);
     } catch {
       toast.error('Failed to load messaging data');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [activeBusinessId, hasBusinesses, isBusinessLoading, requiresSelection, syncSelectedInvoice]);
 
   useEffect(() => {
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadData]);
 
   const sendWhatsApp = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -102,127 +159,165 @@ export default function MessagingPage() {
     <>
       <Navbar title="Messaging" subtitle="Send invoices to customers via WhatsApp" />
 
-      <main className="min-h-screen bg-gray-50/60 dark:bg-gray-950 p-6 lg:p-8 transition-colors duration-200">
+      <main className="min-h-screen bg-gray-50/60 p-6 transition-colors duration-200 dark:bg-gray-950 lg:p-8">
         <div className="mx-auto max-w-7xl space-y-6">
-          <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
-            <div className="mb-5 flex items-center justify-between">
+          <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Send Invoice to WhatsApp</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Select invoice, provide customer number, send message link</p>
-              </div>
-              <button
-                onClick={loadData}
-                className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-700 dark:text-gray-300"
-              >
-                <RefreshCw className="h-4 w-4" /> Refresh
-              </button>
-            </div>
-
-            <form onSubmit={sendWhatsApp} className="grid grid-cols-1 gap-4 md:grid-cols-4">
-              <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-gray-400">Invoice</label>
-                <select
-                  value={invoiceId}
-                  onChange={(e) => setInvoiceId(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
-                >
-                  <option value="">Select invoice</option>
-                  {availableInvoices.map((invoice) => (
-                    <option key={invoice.id} value={invoice.id}>
-                      {invoice.invoice_number} - {invoice.client_name}
-                    </option>
-                  ))}
-                </select>
+                <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Messaging</h1>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Send invoice links to customers via WhatsApp and review delivery logs.</p>
+                {businessName ? (
+                  <p className="mt-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Showing <span className="text-gray-900 dark:text-white">{businessName}</span>
+                  </p>
+                ) : null}
               </div>
 
-              <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-gray-400">Phone Number</label>
-                <input
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="+2547XXXXXXXX"
-                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-gray-400">Custom Message (Optional)</label>
-                <input
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  placeholder="Hello, your invoice is ready"
-                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div className="flex items-end">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                {showBusinessSelector ? (
+                  <ActiveBusinessSelector
+                    businesses={businesses}
+                    activeBusinessId={activeBusinessId}
+                    onChange={setActiveBusinessId}
+                    helperText="Invoice options and WhatsApp delivery logs will follow the selected company."
+                    className="w-full sm:w-[320px]"
+                  />
+                ) : null}
                 <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-4 py-2.5 text-sm font-medium text-white dark:text-gray-900 disabled:opacity-60"
+                  onClick={loadData}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:text-gray-300"
                 >
-                  <MessageCircle className="h-4 w-4" />
-                  {isSubmitting ? 'Sending...' : 'Send WhatsApp'}
+                  <RefreshCw className="h-4 w-4" /> Refresh
                 </button>
               </div>
-            </form>
-          </section>
-
-          <section className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
-            <div className="border-b border-gray-100 dark:border-gray-800 px-6 py-4">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Message Logs</h3>
             </div>
-
-            {isLoading ? (
-              <div className="p-6 text-sm text-gray-500">Loading messages...</div>
-            ) : messages.length === 0 ? (
-              <div className="p-6 text-sm text-gray-500">No WhatsApp messages yet.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-xs uppercase tracking-wider text-gray-400 border-b border-gray-100 dark:border-gray-800">
-                      <th className="px-6 py-3">Invoice</th>
-                      <th className="px-6 py-3">Phone</th>
-                      <th className="px-6 py-3">Status</th>
-                      <th className="px-6 py-3">Link</th>
-                      <th className="px-6 py-3">Sent</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {messages.map((message) => (
-                      <tr key={message.id} className="border-b border-gray-50 dark:border-gray-800">
-                        <td className="px-6 py-3 text-gray-700 dark:text-gray-200">{message.invoice_number || `#${message.invoice}`}</td>
-                        <td className="px-6 py-3 text-gray-600 dark:text-gray-300">{message.phone_number}</td>
-                        <td className="px-6 py-3">
-                          <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                            message.delivery_status === 'sent'
-                              ? 'bg-emerald-50 text-emerald-700'
-                              : message.delivery_status === 'failed'
-                                ? 'bg-red-50 text-red-700'
-                                : 'bg-amber-50 text-amber-700'
-                          }`}>
-                            {message.delivery_status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-3">
-                          <a
-                            href={message.invoice_link}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            Open
-                          </a>
-                        </td>
-                        <td className="px-6 py-3 text-gray-500">{message.sent_at ? formatDate(message.sent_at) : '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
           </section>
+
+          {!hasBusinesses && !isBusinessLoading ? (
+            <BusinessStateCard
+              title="Create a business first"
+              description="Messaging works on invoices, and invoices belong to a business. Add a business profile first so invoice links and WhatsApp logs stay attached to the right company."
+            />
+          ) : requiresSelection ? (
+            <BusinessStateCard
+              title="Select a business to continue"
+              description="You have more than one business. Pick the active company first so invoice options and WhatsApp logs stay in the same business context."
+            />
+          ) : (
+            <>
+              <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                <div className="mb-5">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Send Invoice to WhatsApp</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Select invoice, provide customer number, send message link</p>
+                </div>
+
+                <form onSubmit={sendWhatsApp} className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-gray-400">Invoice</label>
+                    <select
+                      value={invoiceId}
+                      onChange={(e) => setInvoiceId(e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800"
+                    >
+                      <option value="">Select invoice</option>
+                      {availableInvoices.map((invoice) => (
+                        <option key={invoice.id} value={invoice.id}>
+                          {invoice.invoice_number} - {invoice.client_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-gray-400">Phone Number</label>
+                    <input
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="+2547XXXXXXXX"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-gray-400">Custom Message (Optional)</label>
+                    <input
+                      value={messageText}
+                      onChange={(e) => setMessageText(e.target.value)}
+                      placeholder="Hello, your invoice is ready"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800"
+                    />
+                  </div>
+
+                  <div className="flex items-end">
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-60 dark:bg-white dark:text-gray-900"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      {isSubmitting ? 'Sending...' : 'Send WhatsApp'}
+                    </button>
+                  </div>
+                </form>
+              </section>
+
+              <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                <div className="border-b border-gray-100 px-6 py-4 dark:border-gray-800">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Message Logs</h3>
+                </div>
+
+                {isLoading ? (
+                  <div className="p-6 text-sm text-gray-500">Loading messages...</div>
+                ) : messages.length === 0 ? (
+                  <div className="p-6 text-sm text-gray-500">No WhatsApp messages yet.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-100 text-left text-xs uppercase tracking-wider text-gray-400 dark:border-gray-800">
+                          <th className="px-6 py-3">Invoice</th>
+                          <th className="px-6 py-3">Phone</th>
+                          <th className="px-6 py-3">Status</th>
+                          <th className="px-6 py-3">Link</th>
+                          <th className="px-6 py-3">Sent</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {messages.map((message) => (
+                          <tr key={message.id} className="border-b border-gray-50 dark:border-gray-800">
+                            <td className="px-6 py-3 text-gray-700 dark:text-gray-200">{message.invoice_number || `#${message.invoice}`}</td>
+                            <td className="px-6 py-3 text-gray-600 dark:text-gray-300">{message.phone_number}</td>
+                            <td className="px-6 py-3">
+                              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                                message.delivery_status === 'sent'
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : message.delivery_status === 'failed'
+                                    ? 'bg-red-50 text-red-700'
+                                    : 'bg-amber-50 text-amber-700'
+                              }`}>
+                                {message.delivery_status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-3">
+                              <a
+                                href={message.invoice_link}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-blue-600 hover:underline"
+                              >
+                                Open
+                              </a>
+                            </td>
+                            <td className="px-6 py-3 text-gray-500">{message.sent_at ? formatDate(message.sent_at) : '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            </>
+          )}
         </div>
       </main>
     </>

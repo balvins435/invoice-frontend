@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Plus, Search, Filter, Download, Edit, Trash2,
   TrendingDown, PieChart, Tag, X, ChevronDown,
-  AlertTriangle, ReceiptText,
+  AlertTriangle, ReceiptText, Building2,
 } from 'lucide-react';
 import { Doughnut } from 'react-chartjs-2';
 import 'chart.js/auto';
@@ -20,6 +20,7 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { ActiveBusinessSelector } from '@/components/business/ActiveBusinessSelector';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const toNumber = (v: unknown): number => {
@@ -63,6 +64,22 @@ const SelectField = ({ label, value, onChange, children }: {
   </div>
 );
 
+const BusinessStateCard = ({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) => (
+  <section className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center shadow-sm dark:border-gray-700 dark:bg-gray-900">
+    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 dark:bg-gray-800">
+      <Building2 className="h-6 w-6 text-gray-500 dark:text-gray-300" />
+    </div>
+    <h2 className="mt-4 text-xl font-semibold text-gray-900 dark:text-white">{title}</h2>
+    <p className="mx-auto mt-2 max-w-2xl text-sm text-gray-500 dark:text-gray-400">{description}</p>
+  </section>
+);
+
 // ── component ─────────────────────────────────────────────────────────────────
 export default function ExpensesPage() {
   const [expenses, setExpenses]               = useState<Expense[]>([]);
@@ -75,11 +92,17 @@ export default function ExpensesPage() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const router   = useRouter();
   const {
+    businesses,
     activeBusiness,
     activeBusinessId,
+    setActiveBusinessId,
+    hasBusinesses,
+    requiresSelection,
     error: businessError,
     isLoading: isBusinessLoading,
   } = useActiveBusiness();
+  const showBusinessSelector = businesses.length > 1;
+  const businessName = activeBusiness?.display_name || activeBusiness?.business_name;
 
   const effectiveFilters = useMemo(
     () => ({
@@ -91,6 +114,11 @@ export default function ExpensesPage() {
 
   const fetchExpenses = useCallback(async () => {
     if (isBusinessLoading) return;
+    if (requiresSelection) {
+      setExpenses([]);
+      setIsLoading(false);
+      return;
+    }
 
     try {
       setIsLoading(true);
@@ -99,7 +127,7 @@ export default function ExpensesPage() {
       setExpenses(Array.isArray(payload) ? payload : Array.isArray(payload?.results) ? payload.results : []);
     } catch { toast.error('Failed to load expenses'); }
     finally  { setIsLoading(false); }
-  }, [effectiveFilters, isBusinessLoading]);
+  }, [effectiveFilters, isBusinessLoading, requiresSelection]);
 
   useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
   useEffect(() => { router.prefetch(ROUTES.createExpense); }, [router]);
@@ -198,6 +226,58 @@ export default function ExpensesPage() {
     };
   }, [categoryEntries]);
 
+  if (!hasBusinesses && !isBusinessLoading) {
+    return (
+      <>
+        <Navbar title="Expenses" subtitle="Track and manage your business expenses" />
+
+        <main className="min-h-screen bg-gray-50/60 p-6 transition-colors duration-200 dark:bg-gray-950 lg:p-8">
+          <div className="mx-auto max-w-7xl space-y-6">
+            <BusinessStateCard
+              title="Create a business first"
+              description="Expenses are tracked per company. Add a business profile first so expense records, deductible totals, and reports stay inside one clear business boundary."
+            />
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  if (requiresSelection) {
+    return (
+      <>
+        <Navbar title="Expenses" subtitle="Track and manage your business expenses" />
+
+        <main className="min-h-screen bg-gray-50/60 p-6 transition-colors duration-200 dark:bg-gray-950 lg:p-8">
+          <div className="mx-auto max-w-7xl space-y-6">
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Expenses</h1>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Choose the business you want to manage expenses for.</p>
+                </div>
+                {showBusinessSelector ? (
+                  <ActiveBusinessSelector
+                    businesses={businesses}
+                    activeBusinessId={activeBusinessId}
+                    onChange={setActiveBusinessId}
+                    helperText="Expense records, charts, and exports will follow the selected company."
+                    className="w-full lg:w-[320px]"
+                  />
+                ) : null}
+              </div>
+            </div>
+
+            <BusinessStateCard
+              title="Select a business to continue"
+              description="You have more than one business. Pick the active company first so expenses, deductible totals, and category charts all refer to the same ledger."
+            />
+          </div>
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <Navbar title="Expenses" subtitle="Track and manage your business expenses" />
@@ -206,17 +286,27 @@ export default function ExpensesPage() {
         <div className="mx-auto max-w-7xl space-y-6">
 
           {/* ── Page header ── */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Expenses</h1>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Track and manage your business expenses</p>
-              {activeBusiness ? (
+              {businessName ? (
                 <p className="mt-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Showing <span className="text-gray-900 dark:text-white">{activeBusiness.display_name || activeBusiness.business_name}</span>
+                  Showing <span className="text-gray-900 dark:text-white">{businessName}</span>
                 </p>
               ) : null}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              {showBusinessSelector ? (
+                <ActiveBusinessSelector
+                  businesses={businesses}
+                  activeBusinessId={activeBusinessId}
+                  onChange={setActiveBusinessId}
+                  helperText="Switch the active business here. Expense charts and exports follow this selection."
+                  className="w-full sm:w-[300px]"
+                />
+              ) : null}
+              <div className="flex items-center gap-2">
               <button
                 onClick={() => exportCSV(filtered)}
                 className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
@@ -231,6 +321,7 @@ export default function ExpensesPage() {
                 <Plus className="h-4 w-4" />
                 Add Expense
               </Link>
+              </div>
             </div>
           </div>
 
