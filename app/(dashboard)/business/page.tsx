@@ -269,11 +269,11 @@ export default function BusinessPage() {
     <>
       <Navbar title="Business Profile" subtitle="Manage your business information and settings" />
 
-      <main className="min-h-screen bg-gray-50/60 dark:bg-gray-950 p-6 lg:p-8 transition-colors duration-200">
+      <main className="min-h-screen bg-gray-50/60 dark:bg-gray-950 p-4 sm:p-6 lg:p-8 transition-colors duration-200">
         <div className="mx-auto max-w-7xl">
 
           {/* ── Page Header ── */}
-          <div className="mb-8 flex items-center justify-between">
+          <div className="mb-8 flex flex-col gap-4 items-start justify-between sm:flex-row sm:items-center">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
                 Business Profile
@@ -284,7 +284,7 @@ export default function BusinessPage() {
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-4 py-2.5 text-sm font-medium text-white dark:text-gray-900 shadow-sm transition-all hover:bg-gray-800 dark:hover:bg-gray-100 active:scale-[0.98]"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-4 py-2.5 text-sm font-medium text-white dark:text-gray-900 shadow-sm transition-all hover:bg-gray-800 dark:hover:bg-gray-100 active:scale-[0.98]"
             >
               <Plus className="h-4 w-4" />
               Add Business
@@ -425,9 +425,9 @@ export default function BusinessPage() {
 
                   {/* Header Card */}
                   <div className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
-                    <div className="flex items-start justify-between gap-4 p-6">
+                    <div className="flex flex-col gap-4 p-6 md:flex-row md:items-start md:justify-between">
 
-                      <div className="flex items-center gap-5">
+                      <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
                         <div
                           className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 ${
                             logoShape === 'circle' ? 'rounded-full' : 'rounded-2xl'
@@ -462,14 +462,14 @@ export default function BusinessPage() {
                             </>
                           )}
                         </div>
-                        <div>
+                        <div className="flex-1">
                           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                             {selectedBusiness.business_name}
                           </h2>
                           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                             {selectedBusiness.email}
                           </p>
-                          <div className="mt-2.5 flex items-center gap-2">
+                          <div className="mt-2.5 flex flex-wrap items-center gap-2">
                             <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
                               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
                               Active
@@ -481,7 +481,8 @@ export default function BusinessPage() {
                         </div>
                       </div>
 
-                      <div className="flex shrink-0 flex-col items-end gap-2">
+                      <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+                        {/* Logo Shape Selector */}
                         <div className="flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300">
                           <button
                             type="button"
@@ -512,46 +513,46 @@ export default function BusinessPage() {
                             Circle
                           </button>
                         </div>
-                      </div>
 
-                      {/* Action Buttons */}
-                      <div className="flex shrink-0 items-center gap-2">
-                        {isEditing ? (
-                          <>
-                            <button
-                              onClick={() => { setIsEditing(false); handleSelectBusiness(selectedBusiness); }}
-                              className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
-                            >
-                              <X className="h-4 w-4" />
-                              Cancel
-                            </button>
-                            <button
-                              onClick={handleSave}
-                              disabled={!isFormValid()}
-                              className="inline-flex items-center gap-1.5 rounded-xl bg-gray-900 dark:bg-white px-3.5 py-2 text-sm font-medium text-white dark:text-gray-900 transition-all hover:bg-gray-800 dark:hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              <Save className="h-4 w-4" />
-                              Save Changes
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => setIsEditing(true)}
-                              className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
-                            >
-                              <Edit className="h-4 w-4" />
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => setShowDeleteModal(true)}
-                              className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/50 px-3.5 py-2 text-sm font-medium text-red-600 dark:text-red-400 transition-colors hover:bg-red-100 dark:hover:bg-red-950"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Delete
-                            </button>
-                          </>
-                        )}
+                        {/* Action Buttons */}
+                        <div className="flex w-full gap-2 sm:w-auto sm:flex-row">
+                          {isEditing ? (
+                            <>
+                              <button
+                                onClick={() => { setIsEditing(false); handleSelectBusiness(selectedBusiness); }}
+                                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
+                              >
+                                <X className="h-4 w-4" />
+                                Cancel
+                              </button>
+                              <button
+                                onClick={handleSave}
+                                disabled={!isFormValid()}
+                                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl bg-gray-900 dark:bg-white px-3.5 py-2 text-sm font-medium text-white dark:text-gray-900 transition-all hover:bg-gray-800 dark:hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                <Save className="h-4 w-4" />
+                                Save Changes
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => setIsEditing(true)}
+                                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
+                              >
+                                <Edit className="h-4 w-4" />
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => setShowDeleteModal(true)}
+                                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/50 px-3.5 py-2 text-sm font-medium text-red-600 dark:text-red-400 transition-colors hover:bg-red-100 dark:hover:bg-red-950"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Delete
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -565,7 +566,7 @@ export default function BusinessPage() {
                     </div>
 
                     {/* The gap-px trick: parent bg becomes the "border" between cells */}
-                    <div className="grid grid-cols-1 gap-px bg-gray-100 dark:bg-gray-800 md:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-px bg-gray-100 dark:bg-gray-800 sm:grid-cols-2 lg:grid-cols-2">
 
                       {/* Business Name */}
                       <div className="bg-white dark:bg-gray-900 p-5">
@@ -659,7 +660,7 @@ export default function BusinessPage() {
                       </div>
 
                       {/* Address — full width */}
-                      <div className="bg-white dark:bg-gray-900 p-5 md:col-span-2">
+                      <div className="bg-white dark:bg-gray-900 p-5 sm:col-span-2 lg:col-span-2">
                         <div className="mb-2 flex items-center gap-2">
                           <MapPin className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                           <label className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
@@ -762,7 +763,7 @@ export default function BusinessPage() {
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
               Business Logo (Optional)
             </p>
-            <div className="flex items-center gap-5">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
               <div
                 className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 transition-colors hover:border-gray-400 dark:hover:border-gray-500 ${
                   logoShape === 'circle' ? 'rounded-full' : 'rounded-2xl'
@@ -782,7 +783,7 @@ export default function BusinessPage() {
                   <ImageIcon className="h-7 w-7 text-gray-300 dark:text-gray-600" />
                 )}
               </div>
-              <div>
+              <div className="flex-1">
                 <div className="mb-2 inline-flex items-center gap-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                   <button
                     type="button"
@@ -817,7 +818,7 @@ export default function BusinessPage() {
                 <button
                   type="button"
                   onClick={() => createLogoInputRef.current?.click()}
-                  className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <Upload className="h-4 w-4" />
                   Upload Logo
@@ -830,7 +831,7 @@ export default function BusinessPage() {
           </div>
 
           {/* Form Fields */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input
               label="Business Name *"
               value={formData.business_name}
@@ -862,7 +863,7 @@ export default function BusinessPage() {
               onChange={(e) => setFormData({ ...formData, tax_rate: parseFloat(e.target.value) || 0 })}
               required
             />
-            <div className="md:col-span-2">
+            <div className="sm:col-span-2">
               <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Business Address
               </label>
@@ -876,13 +877,7 @@ export default function BusinessPage() {
           </div>
 
           {/* Footer */}
-          <div className="flex flex-col-reverse gap-3 border-t border-gray-100 dark:border-gray-800 pt-4 sm:flex-row sm:justify-end">
-            <button
-              onClick={() => { setShowCreateModal(false); resetForm(); }}
-              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              Cancel
-            </button>
+          <div className="flex flex-col gap-3 border-t border-gray-100 dark:border-gray-800 pt-4 sm:flex-row-reverse sm:justify-between">
             <button
               onClick={handleCreate}
               disabled={!isFormValid()}
@@ -890,6 +885,12 @@ export default function BusinessPage() {
             >
               <Plus className="h-4 w-4" />
               Create Business
+            </button>
+            <button
+              onClick={() => { setShowCreateModal(false); resetForm(); }}
+              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              Cancel
             </button>
           </div>
         </div>
@@ -920,19 +921,19 @@ export default function BusinessPage() {
             </div>
           </div>
 
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <button
-              onClick={() => setShowDeleteModal(false)}
-              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              Cancel
-            </button>
+          <div className="flex flex-col gap-3 sm:flex-row-reverse sm:justify-between">
             <button
               onClick={handleDelete}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 dark:bg-red-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-700 dark:hover:bg-red-600 transition-colors"
             >
               <Trash2 className="h-4 w-4" />
               Delete Business
+            </button>
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              Cancel
             </button>
           </div>
         </div>
