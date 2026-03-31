@@ -81,6 +81,45 @@ export interface Invoice {
   items: InvoiceItem[];
 }
 
+export interface AIInvoiceDraft {
+  business_id?: number;
+  client_name: string;
+  client_email: string;
+  issue_date: string;
+  due_date: string;
+  currency?: string;
+  status?: 'draft' | 'sent';
+  items: Array<{
+    description: string;
+    quantity: number;
+    unit_price: number;
+  }>;
+}
+
+export interface AIReportMetric {
+  label: string;
+  value: string;
+  tone: 'positive' | 'warning' | 'negative' | 'neutral' | string;
+}
+
+export interface AIReportSummary {
+  period_label: string;
+  headline: string;
+  metrics: AIReportMetric[];
+  insights: string[];
+  actions: string[];
+}
+
+export type AIAssistantMode = 'auto' | 'invoice' | 'report' | 'general';
+
+export interface AIAssistantResponse {
+  intent: 'invoice' | 'report' | 'general' | string;
+  reply: string;
+  invoice_draft: AIInvoiceDraft | null;
+  report_summary: AIReportSummary | null;
+  suggested_prompts: string[];
+}
+
 export interface CreateInvoiceData {
   business_id: number;
   client_name: string;

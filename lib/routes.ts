@@ -14,6 +14,7 @@ export const ROUTES = {
   payments: '/payments',
   messaging: '/messaging',
   tax: '/tax',
+  assistant: '/assistant',
   reports: '/reports',
   settings: '/settings',
 } as const;
@@ -40,4 +41,3 @@ export const sanitizeNextRoute = (
   if (AUTH_ROUTE_SET.has(next)) return fallback;
   return next;
 };
-

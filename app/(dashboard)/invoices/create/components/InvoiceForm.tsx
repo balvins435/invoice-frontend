@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/Input';
 import { InvoiceItemsTable } from './InvoiceItemsTable';
 import { InvoiceSummary } from './InvoiceSummary';
 import { apiService } from '@/lib/api';
+import { consumeAiInvoiceDraft } from '@/lib/ai';
 import { getStoredActiveBusinessId } from '@/lib/hooks/useActiveBusiness';
 import { ROUTES } from '@/lib/routes';
 import { Business } from '@/types';
@@ -85,13 +86,42 @@ export const InvoiceForm: React.FC = () => {
       const businessList = res.data.results || res.data;
       setBusinesses(businessList);
 
+      const aiDraft = consumeAiInvoiceDraft();
       const storedBusinessId = getStoredActiveBusinessId();
+      const draftBusinessId =
+        aiDraft?.business_id && businessList.some((business: Business) => business.id === aiDraft.business_id)
+          ? aiDraft.business_id
+          : storedBusinessId;
       const preferredBusiness =
-        businessList.find((business: Business) => business.id === storedBusinessId) ||
+        businessList.find((business: Business) => business.id === draftBusinessId) ||
         (businessList.length === 1 ? businessList[0] : null);
 
       if (preferredBusiness) {
         setValue('business_id', String(preferredBusiness.id), { shouldValidate: true });
+      }
+
+      if (aiDraft) {
+        setValue('client_name', aiDraft.client_name || '', { shouldValidate: true });
+        setValue('client_email', aiDraft.client_email || '', { shouldValidate: true });
+        setValue('issue_date', aiDraft.issue_date || format(new Date(), 'yyyy-MM-dd'), { shouldValidate: true });
+        setValue(
+          'due_date',
+          aiDraft.due_date || format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+          { shouldValidate: true }
+        );
+        setValue(
+          'items',
+          aiDraft.items.length
+            ? aiDraft.items.map((item) => ({
+                description: item.description,
+                quantity: Number.isFinite(item.quantity) && item.quantity > 0 ? item.quantity : 1,
+                unit_price: Number.isFinite(item.unit_price) && item.unit_price >= 0 ? item.unit_price : 0,
+                total: (item.quantity || 1) * (item.unit_price || 0),
+              }))
+            : [{ description: '', quantity: 1, unit_price: 0, total: 0 }],
+          { shouldValidate: true }
+        );
+        toast.success('AI draft loaded into the invoice builder.');
       }
     } catch { toast.error('Failed to load businesses'); }
     finally  { setIsLoading(false); }

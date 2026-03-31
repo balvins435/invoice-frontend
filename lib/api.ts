@@ -2,6 +2,7 @@ import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'ax
 import { API_URL } from './config';
 import { ROUTES, sanitizeNextRoute } from './routes';
 import { session } from './session';
+
 type TokenRefreshResponse = { access: string };
 type JsonPayload = Record<string, unknown>;
 type QueryParams = object;
@@ -201,6 +202,14 @@ export const apiService = {
     getDashboardStats: (params: QueryParams) => api.get('/reports/dashboard-stats/', { params }),
     downloadPDF: (params: QueryParams) =>
       api.get('/reports/pdf/', { params, responseType: 'blob' }),
+  },
+
+  // AI endpoints
+  ai: {
+    askAssistant: (data: { prompt: string; mode?: string; business_id?: number }) =>
+      api.post('/ai/assistant/', data),
+    generateInvoiceDraft: (data: { text: string }) =>
+      api.post('/ai/generate-invoice/', data),
   },
 };
 

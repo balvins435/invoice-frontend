@@ -8,6 +8,7 @@ import {
   FileText, 
   CreditCard, 
   BarChart3, 
+  Sparkles,
   Building,
   MessageCircle,
   Landmark,
@@ -34,6 +35,7 @@ const navigation = [
   { name: 'Messaging', href: ROUTES.messaging, icon: MessageCircle },
   { name: 'Tax', href: ROUTES.tax, icon: ShieldCheck },
   { name: 'Expenses', href: ROUTES.expenses, icon: CreditCard },
+  { name: 'AI Copilot', href: ROUTES.assistant, icon: Sparkles },
   { name: 'Reports', href: ROUTES.reports, icon: BarChart3 },
   
 ];
