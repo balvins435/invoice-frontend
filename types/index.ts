@@ -120,6 +120,20 @@ export interface AIAssistantResponse {
   suggested_prompts: string[];
 }
 
+export type AIChatMessage =
+  | {
+      id: string;
+      role: 'assistant' | 'user';
+      type: 'text';
+      content: string;
+    }
+  | {
+      id: string;
+      role: 'assistant';
+      type: 'response';
+      content: AIAssistantResponse;
+    };
+
 export interface CreateInvoiceData {
   business_id: number;
   client_name: string;

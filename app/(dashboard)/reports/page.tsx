@@ -9,6 +9,7 @@ import {
   FileText,
   Percent,
   PieChart,
+  Sparkles,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
@@ -22,6 +23,7 @@ import { Navbar } from '@/components/Navbar';
 import { ActiveBusinessSelector } from '@/components/business/ActiveBusinessSelector';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { apiService } from '@/lib/api';
+import { openAiChatShortcut } from '@/lib/ai';
 import { useActiveBusiness } from '@/lib/hooks/useActiveBusiness';
 import { ROUTES } from '@/lib/routes';
 import { MonthlyReport, ProfitLossStatement, TaxSummary } from '@/types';
@@ -319,6 +321,20 @@ export default function ReportsPage() {
     }
   };
 
+  const handleExplainReport = () => {
+    if (!activeBusinessId) {
+      toast.error('Select a business first');
+      return;
+    }
+
+    const periodLabel = selectedMonth ? `${months[selectedMonth - 1]} ${selectedYear}` : `${selectedYear}`;
+    openAiChatShortcut({
+      open: true,
+      mode: 'report',
+      prompt: `Explain the financial report for ${businessName} for ${periodLabel}. Highlight income, expenses, net profit, tax exposure, and the top three actions I should take next.`,
+    });
+  };
+
   return (
     <>
       <Navbar title="Reports" subtitle="Financial insights and analytics for your business" />
@@ -353,6 +369,13 @@ export default function ReportsPage() {
                 />
 
                 <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={handleExplainReport}
+                    disabled={!activeBusinessId}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-60 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    <Sparkles className="h-4 w-4" /> Explain with AI
+                  </button>
                   <button
                     onClick={exportToExcel}
                     disabled={!activeBusinessId}

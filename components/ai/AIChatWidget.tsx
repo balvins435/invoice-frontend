@@ -18,24 +18,16 @@ import {
 
 import { ActiveBusinessSelector } from '@/components/business/ActiveBusinessSelector';
 import { apiService } from '@/lib/api';
-import { storeAiInvoiceDraft } from '@/lib/ai';
+import {
+  AI_CHAT_EVENTS,
+  openAiChatShortcut,
+  readAiChatState,
+  storeAiInvoiceDraft,
+  writeAiChatState,
+} from '@/lib/ai';
 import { useActiveBusiness } from '@/lib/hooks/useActiveBusiness';
 import { ROUTES } from '@/lib/routes';
-import { AIAssistantMode, AIAssistantResponse, AIReportMetric } from '@/types';
-
-type ChatMessage =
-  | {
-      id: string;
-      role: 'assistant' | 'user';
-      type: 'text';
-      content: string;
-    }
-  | {
-      id: string;
-      role: 'assistant';
-      type: 'response';
-      content: AIAssistantResponse;
-    };
+import { AIAssistantMode, AIAssistantResponse, AIChatMessage, AIReportMetric } from '@/types';
 
 const QUICK_PROMPTS: Array<{ label: string; mode: AIAssistantMode; prompt: string }> = [
   {
@@ -201,19 +193,24 @@ export function AIChatWidget() {
   const pathname = usePathname();
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
-  const [mode, setMode] = useState<AIAssistantMode>('auto');
-  const [prompt, setPrompt] = useState('');
+  const initialChatState = readAiChatState();
+  const [isOpen, setIsOpen] = useState(initialChatState?.isOpen ?? false);
+  const [mode, setMode] = useState<AIAssistantMode>(initialChatState?.mode ?? 'auto');
+  const [prompt, setPrompt] = useState(initialChatState?.prompt ?? '');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'assistant-welcome',
-      role: 'assistant',
-      type: 'text',
-      content:
-        'Ask me to draft an invoice, explain this month’s numbers, or suggest the next finance action for the active business.',
-    },
-  ]);
+  const [messages, setMessages] = useState<AIChatMessage[]>(
+    initialChatState?.messages.length
+      ? initialChatState.messages
+      : [
+          {
+            id: 'assistant-welcome',
+            role: 'assistant',
+            type: 'text',
+            content:
+              'Ask me to draft an invoice, explain this month’s numbers, or suggest the next finance action for the active business.',
+          },
+        ]
+  );
   const {
     businesses,
     activeBusiness,
@@ -230,9 +227,47 @@ export function AIChatWidget() {
   }, [messages, isOpen, isSubmitting]);
 
   useEffect(() => {
+    writeAiChatState({
+      isOpen,
+      mode,
+      prompt,
+      messages,
+    });
+  }, [isOpen, messages, mode, prompt]);
+
+  useEffect(() => {
     router.prefetch(ROUTES.createInvoice);
     router.prefetch(ROUTES.assistant);
   }, [router]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handleShortcut = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        prompt?: string;
+        mode?: AIAssistantMode;
+        autoSubmit?: boolean;
+        open?: boolean;
+      }>;
+      const detail = customEvent.detail;
+      if (!detail?.prompt) return;
+
+      const shortcutMode = detail.mode ?? 'auto';
+      setPrompt(detail.prompt);
+      setMode(shortcutMode);
+      setIsOpen(detail.open ?? true);
+
+      if (detail.autoSubmit) {
+        void submitPrompt(detail.prompt, shortcutMode);
+      }
+    };
+
+    window.addEventListener(AI_CHAT_EVENTS.shortcut, handleShortcut as EventListener);
+    return () => {
+      window.removeEventListener(AI_CHAT_EVENTS.shortcut, handleShortcut as EventListener);
+    };
+  });
 
   const businessName = useMemo(
     () => activeBusiness?.display_name || activeBusiness?.business_name || null,
@@ -262,7 +297,7 @@ export function AIChatWidget() {
       return;
     }
 
-    const userMessage: ChatMessage = {
+    const userMessage: AIChatMessage = {
       id: createId(),
       role: 'user',
       type: 'text',
@@ -397,10 +432,7 @@ export function AIChatWidget() {
                     key={message.id}
                     response={message.content}
                     onUseInvoiceDraft={() => handleUseInvoiceDraft(message.content)}
-                    onUsePrompt={(nextPrompt) => {
-                      setPrompt(nextPrompt);
-                      void submitPrompt(nextPrompt, 'auto');
-                    }}
+                    onUsePrompt={(nextPrompt) => openAiChatShortcut({ prompt: nextPrompt, mode: 'auto', autoSubmit: true, open: true })}
                   />
                 )
               )}

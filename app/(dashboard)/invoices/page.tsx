@@ -10,6 +10,7 @@ import {
   Plus,
   ReceiptText,
   Search,
+  Sparkles,
   Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -22,6 +23,7 @@ import { Input } from '@/components/ui/Input';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { Modal } from '@/components/ui/Modal';
 import { apiService } from '@/lib/api';
+import { openAiChatShortcut } from '@/lib/ai';
 import { useActiveBusiness } from '@/lib/hooks/useActiveBusiness';
 import { ROUTES } from '@/lib/routes';
 import { Invoice, InvoiceFilters } from '@/types';
@@ -393,6 +395,25 @@ export default function InvoicesPage() {
     [displayInvoices]
   );
 
+  const handleAskAiAboutInvoices = () => {
+    openAiChatShortcut({
+      open: true,
+      mode: 'general',
+      prompt: businessName
+        ? `Review the current invoice list for ${businessName}. Summarize outstanding balances, overdue risk, and the clearest collection actions to take next.`
+        : 'Review the current invoice list. Summarize outstanding balances, overdue risk, and the clearest collection actions to take next.',
+    });
+  };
+
+  const handleDraftReminder = (invoice: Invoice) => {
+    const balanceDue = getBalanceDue(invoice);
+    openAiChatShortcut({
+      open: true,
+      mode: 'general',
+      prompt: `Draft a short, professional payment reminder for invoice ${invoice.invoice_number} for ${invoice.client_name}. Balance due is ${formatCurrency(balanceDue, invoice.currency)} and the due date is ${formatDate(invoice.due_date)}.`,
+    });
+  };
+
   const ActionButtons = ({ invoice }: { invoice: Invoice }) => (
     <div className="flex flex-wrap gap-1.5">
       <button onClick={() => handleDownloadPDF(invoice.id)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">PDF</button>
@@ -414,6 +435,12 @@ export default function InvoicesPage() {
         }`}
       >
         Pay M-Pesa
+      </button>
+      <button
+        onClick={() => handleDraftReminder(invoice)}
+        className="rounded-lg border border-fuchsia-200 bg-fuchsia-50 px-2 py-1 text-xs font-medium text-fuchsia-700 dark:border-fuchsia-900/30 dark:bg-fuchsia-950/30 dark:text-fuchsia-300"
+      >
+        AI Reminder
       </button>
       <button onClick={() => handleSendWhatsApp(invoice)} className="rounded-lg border border-green-200 bg-green-50 px-2 py-1 text-xs font-medium text-green-700 dark:border-green-900/30 dark:bg-green-950/30 dark:text-green-300">Send WhatsApp</button>
       <button
@@ -470,6 +497,13 @@ export default function InvoicesPage() {
                 >
                   <Plus className="h-4 w-4" /> New Invoice
                 </Link>
+                <button
+                  type="button"
+                  onClick={handleAskAiAboutInvoices}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  <Sparkles className="h-4 w-4" /> Ask AI
+                </button>
               </div>
             </div>
           </section>
