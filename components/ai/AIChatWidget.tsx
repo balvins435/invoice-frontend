@@ -203,6 +203,10 @@ export function AIChatWidget() {
   const pathname = usePathname();
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+  const touchCurrentYRef = useRef<number | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<AIAssistantMode>('auto');
@@ -349,6 +353,54 @@ export function AIChatWidget() {
     [activeBusiness]
   );
 
+  const resetDrag = useCallback(() => {
+    touchStartYRef.current = null;
+    touchCurrentYRef.current = null;
+    setDragOffset(0);
+  }, []);
+
+  const handleTouchStart = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
+    if (window.innerWidth >= 640) return;
+    if (!scrollRef.current || scrollRef.current.scrollTop > 0) return;
+
+    const touch = event.touches[0];
+    touchStartYRef.current = touch.clientY;
+    touchCurrentYRef.current = touch.clientY;
+  }, []);
+
+  const handleTouchMove = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
+    if (window.innerWidth >= 640) return;
+    if (touchStartYRef.current === null) return;
+
+    const touch = event.touches[0];
+    touchCurrentYRef.current = touch.clientY;
+    const delta = touch.clientY - touchStartYRef.current;
+
+    if (delta <= 0) {
+      setDragOffset(0);
+      return;
+    }
+
+    setDragOffset(Math.min(delta, 160));
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (window.innerWidth >= 640) {
+      resetDrag();
+      return;
+    }
+
+    const start = touchStartYRef.current;
+    const end = touchCurrentYRef.current;
+    const delta = start !== null && end !== null ? end - start : 0;
+
+    if (delta > 96) {
+      setIsOpen(false);
+    }
+
+    resetDrag();
+  }, [resetDrag]);
+
   if (pathname === ROUTES.assistant) {
     return null;
   }
@@ -369,7 +421,20 @@ export function AIChatWidget() {
     <div className="pointer-events-none fixed bottom-0 right-0 z-50 w-full px-4 pb-4 sm:w-auto sm:px-6 sm:pb-6 lg:right-0 lg:mr-0 lg:pl-0 lg:pr-6">
       <div className="pointer-events-auto ml-auto w-full sm:max-w-[24rem]">
         {isOpen ? (
-          <div className="flex max-h-[min(78dvh,calc(100dvh-1rem))] min-h-[24rem] w-full flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white/95 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur sm:max-h-[min(72dvh,44rem)] sm:min-h-[28rem] sm:max-w-[24rem] lg:mr-0 dark:border-slate-700 dark:bg-slate-900/95">
+          <div
+            ref={panelRef}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
+            className="flex max-h-[min(78dvh,calc(100dvh-1rem))] min-h-[24rem] w-full flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white/95 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur transition-transform duration-200 ease-out sm:max-h-[min(72dvh,44rem)] sm:min-h-[28rem] sm:max-w-[24rem] lg:mr-0 dark:border-slate-700 dark:bg-slate-900/95"
+            style={{
+              transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
+            }}
+          >
+            <div className="flex justify-center pt-2 sm:hidden">
+              <div className="h-1.5 w-12 rounded-full bg-slate-300/90 dark:bg-slate-600/90" />
+            </div>
             <div className="shrink-0 border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),linear-gradient(180deg,_rgba(248,250,252,0.98)_0%,_rgba(255,255,255,0.98)_100%)] p-4 dark:border-slate-700 dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),linear-gradient(180deg,_rgba(15,23,42,0.98)_0%,_rgba(2,6,23,0.98)_100%)]">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
