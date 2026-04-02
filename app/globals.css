@@ -121,3 +121,8 @@ body {
 }
 
 }
+
+.ai-chat-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}

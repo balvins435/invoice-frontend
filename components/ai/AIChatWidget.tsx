@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -70,6 +70,16 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 };
 
 const createId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const DEFAULT_MESSAGES: AIChatMessage[] = [
+  {
+    id: 'assistant-welcome',
+    role: 'assistant',
+    type: 'text',
+    content:
+      'Ask me to draft an invoice, explain this month’s numbers, or suggest the next finance action for the active business.',
+  },
+];
 
 const ReportMetricPill = ({ metric }: { metric: AIReportMetric }) => {
   const toneClass = toneClassMap[metric.tone] || toneClassMap.neutral;
@@ -193,24 +203,12 @@ export function AIChatWidget() {
   const pathname = usePathname();
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const initialChatState = readAiChatState();
-  const [isOpen, setIsOpen] = useState(initialChatState?.isOpen ?? false);
-  const [mode, setMode] = useState<AIAssistantMode>(initialChatState?.mode ?? 'auto');
-  const [prompt, setPrompt] = useState(initialChatState?.prompt ?? '');
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [mode, setMode] = useState<AIAssistantMode>('auto');
+  const [prompt, setPrompt] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [messages, setMessages] = useState<AIChatMessage[]>(
-    initialChatState?.messages.length
-      ? initialChatState.messages
-      : [
-          {
-            id: 'assistant-welcome',
-            role: 'assistant',
-            type: 'text',
-            content:
-              'Ask me to draft an invoice, explain this month’s numbers, or suggest the next finance action for the active business.',
-          },
-        ]
-  );
+  const [messages, setMessages] = useState<AIChatMessage[]>(DEFAULT_MESSAGES);
   const {
     businesses,
     activeBusiness,
@@ -227,58 +225,32 @@ export function AIChatWidget() {
   }, [messages, isOpen, isSubmitting]);
 
   useEffect(() => {
+    const savedState = readAiChatState();
+    if (savedState) {
+      setIsOpen(savedState.isOpen);
+      setMode(savedState.mode);
+      setPrompt(savedState.prompt);
+      setMessages(savedState.messages.length ? savedState.messages : DEFAULT_MESSAGES);
+    }
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated) return;
     writeAiChatState({
       isOpen,
       mode,
       prompt,
       messages,
     });
-  }, [isOpen, messages, mode, prompt]);
+  }, [isHydrated, isOpen, messages, mode, prompt]);
 
   useEffect(() => {
     router.prefetch(ROUTES.createInvoice);
     router.prefetch(ROUTES.assistant);
   }, [router]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-
-    const handleShortcut = (event: Event) => {
-      const customEvent = event as CustomEvent<{
-        prompt?: string;
-        mode?: AIAssistantMode;
-        autoSubmit?: boolean;
-        open?: boolean;
-      }>;
-      const detail = customEvent.detail;
-      if (!detail?.prompt) return;
-
-      const shortcutMode = detail.mode ?? 'auto';
-      setPrompt(detail.prompt);
-      setMode(shortcutMode);
-      setIsOpen(detail.open ?? true);
-
-      if (detail.autoSubmit) {
-        void submitPrompt(detail.prompt, shortcutMode);
-      }
-    };
-
-    window.addEventListener(AI_CHAT_EVENTS.shortcut, handleShortcut as EventListener);
-    return () => {
-      window.removeEventListener(AI_CHAT_EVENTS.shortcut, handleShortcut as EventListener);
-    };
-  });
-
-  const businessName = useMemo(
-    () => activeBusiness?.display_name || activeBusiness?.business_name || null,
-    [activeBusiness]
-  );
-
-  if (pathname === ROUTES.assistant) {
-    return null;
-  }
-
-  const submitPrompt = async (nextPrompt?: string, nextMode?: AIAssistantMode) => {
+  const submitPrompt = useCallback(async (nextPrompt?: string, nextMode?: AIAssistantMode) => {
     const promptToSend = (nextPrompt ?? prompt).trim();
     const modeToSend = nextMode ?? mode;
 
@@ -341,7 +313,45 @@ export function AIChatWidget() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [activeBusinessId, hasBusinesses, mode, prompt]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handleShortcut = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        prompt?: string;
+        mode?: AIAssistantMode;
+        autoSubmit?: boolean;
+        open?: boolean;
+      }>;
+      const detail = customEvent.detail;
+      if (!detail?.prompt) return;
+
+      const shortcutMode = detail.mode ?? 'auto';
+      setPrompt(detail.prompt);
+      setMode(shortcutMode);
+      setIsOpen(detail.open ?? true);
+
+      if (detail.autoSubmit) {
+        void submitPrompt(detail.prompt, shortcutMode);
+      }
+    };
+
+    window.addEventListener(AI_CHAT_EVENTS.shortcut, handleShortcut as EventListener);
+    return () => {
+      window.removeEventListener(AI_CHAT_EVENTS.shortcut, handleShortcut as EventListener);
+    };
+  }, [submitPrompt]);
+
+  const businessName = useMemo(
+    () => activeBusiness?.display_name || activeBusiness?.business_name || null,
+    [activeBusiness]
+  );
+
+  if (pathname === ROUTES.assistant) {
+    return null;
+  }
 
   const handleUseInvoiceDraft = (response: AIAssistantResponse) => {
     if (!response.invoice_draft) return;
@@ -356,11 +366,11 @@ export function AIChatWidget() {
   };
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-end p-4 sm:p-6 lg:left-64">
-      <div className="pointer-events-auto w-full max-w-[24rem]">
+    <div className="pointer-events-none fixed bottom-0 right-0 z-50 w-full px-4 pb-4 sm:w-auto sm:px-6 sm:pb-6 lg:right-0 lg:mr-0 lg:pl-0 lg:pr-6">
+      <div className="pointer-events-auto ml-auto w-full sm:max-w-[24rem]">
         {isOpen ? (
-          <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white/95 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
-            <div className="border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),linear-gradient(180deg,_rgba(248,250,252,0.98)_0%,_rgba(255,255,255,0.98)_100%)] p-4 dark:border-slate-700 dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),linear-gradient(180deg,_rgba(15,23,42,0.98)_0%,_rgba(2,6,23,0.98)_100%)]">
+          <div className="flex max-h-[min(78dvh,calc(100dvh-1rem))] min-h-[24rem] w-full flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white/95 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur sm:max-h-[min(72dvh,44rem)] sm:min-h-[28rem] sm:max-w-[24rem] lg:mr-0 dark:border-slate-700 dark:bg-slate-900/95">
+            <div className="shrink-0 border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),linear-gradient(180deg,_rgba(248,250,252,0.98)_0%,_rgba(255,255,255,0.98)_100%)] p-4 dark:border-slate-700 dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),linear-gradient(180deg,_rgba(15,23,42,0.98)_0%,_rgba(2,6,23,0.98)_100%)]">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-700 dark:border-sky-900/40 dark:bg-sky-950/30 dark:text-sky-300">
@@ -404,7 +414,10 @@ export function AIChatWidget() {
               ) : null}
             </div>
 
-            <div ref={scrollRef} className="max-h-[48vh] space-y-3 overflow-y-auto p-4">
+            <div
+              ref={scrollRef}
+              className="ai-chat-scroll min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4 touch-pan-y"
+            >
               {requiresSelection ? (
                 <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
                   Choose a business above to get business-aware summaries and invoice drafts under the right company.
@@ -447,7 +460,7 @@ export function AIChatWidget() {
               ) : null}
             </div>
 
-            <div className="border-t border-slate-200 bg-slate-50/90 p-4 dark:border-slate-700 dark:bg-slate-950/80">
+            <div className="shrink-0 border-t border-slate-200 bg-slate-50/90 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-slate-700 dark:bg-slate-950/80">
               <div className="mb-3 flex flex-wrap gap-2">
                 {MODE_OPTIONS.map((item) => (
                   <button
