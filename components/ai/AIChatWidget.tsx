@@ -427,7 +427,7 @@ export function AIChatWidget() {
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
-            className="flex max-h-[min(78dvh,calc(100dvh-1rem))] min-h-[24rem] w-full flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white/95 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur transition-transform duration-200 ease-out sm:max-h-[min(72dvh,44rem)] sm:min-h-[28rem] sm:max-w-[24rem] lg:mr-0 dark:border-slate-700 dark:bg-slate-900/95"
+            className="flex max-h-[calc(100dvh-1rem)] min-h-[20rem] w-full flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white/95 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur transition-transform duration-200 ease-out sm:max-h-[min(calc(100dvh-2rem),40rem)] sm:min-h-0 sm:max-w-[24rem] lg:mr-0 dark:border-slate-700 dark:bg-slate-900/95"
             style={{
               transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
             }}
@@ -564,7 +564,7 @@ export function AIChatWidget() {
                   value={prompt}
                   onChange={(event) => setPrompt(event.target.value)}
                   placeholder="Ask for an invoice draft, report summary, or next action..."
-                  className="min-h-[80px] flex-1 resize-none rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className="min-h-[72px] max-h-32 flex-1 resize-y rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                 />
                 <button
                   type="button"
