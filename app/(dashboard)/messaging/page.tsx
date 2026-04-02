@@ -2,11 +2,12 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Building2, MessageCircle, RefreshCw } from 'lucide-react';
+import { Building2, MessageCircle, RefreshCw, Sparkles } from 'lucide-react';
 
 import { Navbar } from '@/components/Navbar';
 import { ActiveBusinessSelector } from '@/components/business/ActiveBusinessSelector';
 import { apiService } from '@/lib/api';
+import { openAiChatShortcut } from '@/lib/ai';
 import { useActiveBusiness } from '@/lib/hooks/useActiveBusiness';
 import { Invoice, WhatsAppMessage } from '@/types';
 import { formatDate } from '@/lib/utils';
@@ -155,6 +156,24 @@ export default function MessagingPage() {
     }
   };
 
+  const handleAskAiAboutMessaging = () => {
+    openAiChatShortcut({
+      open: true,
+      mode: 'general',
+      prompt: businessName
+        ? `Review the WhatsApp invoice activity for ${businessName}. Summarize failed deliveries, likely reasons, and what message follow-up I should send next.`
+        : 'Review the WhatsApp invoice activity. Summarize failed deliveries, likely reasons, and what message follow-up I should send next.',
+    });
+  };
+
+  const handleDraftFollowUp = (message: WhatsAppMessage) => {
+    openAiChatShortcut({
+      open: true,
+      mode: 'general',
+      prompt: `Draft a short WhatsApp follow-up for invoice ${message.invoice_number || `#${message.invoice}`} to ${message.phone_number}. The previous delivery status was ${message.delivery_status}. Keep it professional and customer-friendly.`,
+    });
+  };
+
   return (
     <>
       <Navbar title="Messaging" subtitle="Send invoices to customers via WhatsApp" />
@@ -183,6 +202,12 @@ export default function MessagingPage() {
                     className="w-full sm:w-[320px]"
                   />
                 ) : null}
+                <button
+                  onClick={handleAskAiAboutMessaging}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:text-gray-300"
+                >
+                  <Sparkles className="h-4 w-4" /> Ask AI
+                </button>
                 <button
                   onClick={loadData}
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:text-gray-300"
@@ -280,6 +305,7 @@ export default function MessagingPage() {
                           <th className="px-6 py-3">Status</th>
                           <th className="px-6 py-3">Link</th>
                           <th className="px-6 py-3">Sent</th>
+                          <th className="px-6 py-3">AI</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -309,6 +335,19 @@ export default function MessagingPage() {
                               </a>
                             </td>
                             <td className="px-6 py-3 text-gray-500">{message.sent_at ? formatDate(message.sent_at) : '-'}</td>
+                            <td className="px-6 py-3">
+                              {message.delivery_status === 'failed' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDraftFollowUp(message)}
+                                  className="rounded-lg border border-fuchsia-200 bg-fuchsia-50 px-2 py-1 text-xs font-medium text-fuchsia-700 dark:border-fuchsia-900/30 dark:bg-fuchsia-950/30 dark:text-fuchsia-300"
+                                >
+                                  Draft Follow-up
+                                </button>
+                              ) : (
+                                <span className="text-xs text-gray-400">-</span>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>

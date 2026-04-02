@@ -2,11 +2,12 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Building2, CreditCard, RefreshCw } from 'lucide-react';
+import { Building2, CreditCard, RefreshCw, Sparkles } from 'lucide-react';
 
 import { Navbar } from '@/components/Navbar';
 import { ActiveBusinessSelector } from '@/components/business/ActiveBusinessSelector';
 import { apiService } from '@/lib/api';
+import { openAiChatShortcut } from '@/lib/ai';
 import { useActiveBusiness } from '@/lib/hooks/useActiveBusiness';
 import { Invoice, PaymentTransaction } from '@/types';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -165,6 +166,24 @@ export default function PaymentsPage() {
     }
   };
 
+  const handleAskAiAboutPayments = () => {
+    openAiChatShortcut({
+      open: true,
+      mode: 'general',
+      prompt: businessName
+        ? `Review the payment collections for ${businessName}. Summarize failed or pending M-Pesa attempts, likely issues, and the clearest next follow-up actions.`
+        : 'Review the payment collections. Summarize failed or pending M-Pesa attempts, likely issues, and the clearest next follow-up actions.',
+    });
+  };
+
+  const handleExplainFailedCollection = (transaction: PaymentTransaction) => {
+    openAiChatShortcut({
+      open: true,
+      mode: 'general',
+      prompt: `Explain this failed M-Pesa collection and suggest the next step. Reference: ${transaction.reference}. Invoice: ${transaction.invoice_number || `#${transaction.invoice}`}. Amount: ${formatCurrency(transaction.amount, transaction.currency)}. Phone: ${transaction.phone_number}. Result: ${transaction.result_description || transaction.result_code || 'No provider message available'}.`,
+    });
+  };
+
   return (
     <>
       <Navbar title="Payments" subtitle="Initiate M-Pesa STK push and track payment confirmations" />
@@ -193,6 +212,12 @@ export default function PaymentsPage() {
                     className="w-full sm:w-[320px]"
                   />
                 ) : null}
+                <button
+                  onClick={handleAskAiAboutPayments}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:text-gray-300"
+                >
+                  <Sparkles className="h-4 w-4" /> Ask AI
+                </button>
                 <button
                   onClick={loadData}
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:text-gray-300"
@@ -290,6 +315,7 @@ export default function PaymentsPage() {
                           <th className="px-6 py-3">Phone</th>
                           <th className="px-6 py-3">Status</th>
                           <th className="px-6 py-3">Date</th>
+                          <th className="px-6 py-3">AI</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -313,6 +339,19 @@ export default function PaymentsPage() {
                               </span>
                             </td>
                             <td className="px-6 py-3 text-gray-500">{formatDate(transaction.created_at)}</td>
+                            <td className="px-6 py-3">
+                              {transaction.status === 'failed' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleExplainFailedCollection(transaction)}
+                                  className="rounded-lg border border-fuchsia-200 bg-fuchsia-50 px-2 py-1 text-xs font-medium text-fuchsia-700 dark:border-fuchsia-900/30 dark:bg-fuchsia-950/30 dark:text-fuchsia-300"
+                                >
+                                  Explain Failure
+                                </button>
+                              ) : (
+                                <span className="text-xs text-gray-400">-</span>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>

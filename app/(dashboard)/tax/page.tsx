@@ -2,11 +2,12 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Building2, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Building2, RefreshCw, ShieldCheck, Sparkles } from 'lucide-react';
 
 import { Navbar } from '@/components/Navbar';
 import { ActiveBusinessSelector } from '@/components/business/ActiveBusinessSelector';
 import { apiService } from '@/lib/api';
+import { openAiChatShortcut } from '@/lib/ai';
 import { useActiveBusiness } from '@/lib/hooks/useActiveBusiness';
 import { Invoice, TaxSubmission } from '@/types';
 import { formatDate } from '@/lib/utils';
@@ -151,6 +152,24 @@ export default function TaxPage() {
     }
   };
 
+  const handleAskAiAboutTax = () => {
+    openAiChatShortcut({
+      open: true,
+      mode: 'report',
+      prompt: businessName
+        ? `Summarize the current eTIMS sync status for ${businessName}. Highlight submitted invoices, failures, likely causes, and the top actions needed next.`
+        : 'Summarize the current eTIMS sync status. Highlight submitted invoices, failures, likely causes, and the top actions needed next.',
+    });
+  };
+
+  const handleExplainEtimsFailure = (submission: TaxSubmission) => {
+    openAiChatShortcut({
+      open: true,
+      mode: 'general',
+      prompt: `Explain this eTIMS submission failure and suggest the next fix. Invoice: ${submission.invoice_number || `#${submission.invoice}`}. Status: ${submission.status}. Error: ${submission.error_message || 'No error message returned'}.`,
+    });
+  };
+
   return (
     <>
       <Navbar title="Tax (eTIMS)" subtitle="Submit invoices to KRA eTIMS and track tax invoice numbers" />
@@ -179,6 +198,12 @@ export default function TaxPage() {
                     className="w-full sm:w-[320px]"
                   />
                 ) : null}
+                <button
+                  onClick={handleAskAiAboutTax}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:text-gray-300"
+                >
+                  <Sparkles className="h-4 w-4" /> Ask AI
+                </button>
                 <button
                   onClick={loadData}
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:text-gray-300"
@@ -256,6 +281,7 @@ export default function TaxPage() {
                           <th className="px-6 py-3">Tax Invoice #</th>
                           <th className="px-6 py-3">Submitted</th>
                           <th className="px-6 py-3">Error</th>
+                          <th className="px-6 py-3">AI</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -276,6 +302,19 @@ export default function TaxPage() {
                             <td className="px-6 py-3 font-medium text-gray-900 dark:text-gray-100">{submission.tax_invoice_number || '-'}</td>
                             <td className="px-6 py-3 text-gray-500">{submission.submitted_at ? formatDate(submission.submitted_at) : '-'}</td>
                             <td className="px-6 py-3 text-red-600">{submission.error_message || '-'}</td>
+                            <td className="px-6 py-3">
+                              {submission.status === 'failed' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleExplainEtimsFailure(submission)}
+                                  className="rounded-lg border border-fuchsia-200 bg-fuchsia-50 px-2 py-1 text-xs font-medium text-fuchsia-700 dark:border-fuchsia-900/30 dark:bg-fuchsia-950/30 dark:text-fuchsia-300"
+                                >
+                                  Explain Failure
+                                </button>
+                              ) : (
+                                <span className="text-xs text-gray-400">-</span>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
