@@ -8,6 +8,7 @@ import {
   ArrowRight,
   Bot,
   ChevronDown,
+  ChevronUp,
   Loader2,
   MessageSquare,
   Send,
@@ -209,6 +210,7 @@ export function AIChatWidget() {
   const [dragOffset, setDragOffset] = useState(0);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [showQuickPrompts, setShowQuickPrompts] = useState(true);
   const [mode, setMode] = useState<AIAssistantMode>('auto');
   const [prompt, setPrompt] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -253,6 +255,22 @@ export function AIChatWidget() {
     router.prefetch(ROUTES.createInvoice);
     router.prefetch(ROUTES.assistant);
   }, [router]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const evaluatePromptVisibility = () => {
+      const isShortViewport = window.innerHeight < 820;
+      const isNarrowViewport = window.innerWidth < 640;
+      setShowQuickPrompts(!(isShortViewport || isNarrowViewport));
+    };
+
+    evaluatePromptVisibility();
+    window.addEventListener('resize', evaluatePromptVisibility);
+    return () => {
+      window.removeEventListener('resize', evaluatePromptVisibility);
+    };
+  }, []);
 
   const submitPrompt = useCallback(async (nextPrompt?: string, nextMode?: AIAssistantMode) => {
     const promptToSend = (nextPrompt ?? prompt).trim();
@@ -418,8 +436,8 @@ export function AIChatWidget() {
   };
 
   return (
-    <div className="pointer-events-none fixed bottom-0 right-0 z-50 w-full px-4 pb-4 sm:w-auto sm:px-6 sm:pb-6 lg:right-0 lg:mr-0 lg:pl-0 lg:pr-6">
-      <div className="pointer-events-auto ml-auto w-full sm:max-w-[24rem]">
+    <div className="pointer-events-none fixed bottom-0 right-0 z-50 w-full px-4 pb-4 sm:w-auto sm:px-5 sm:pb-5 lg:right-0 lg:mr-0 lg:pl-0 lg:pr-5">
+      <div className="pointer-events-auto ml-auto w-full sm:max-w-[20rem]">
         {isOpen ? (
           <div
             ref={panelRef}
@@ -427,7 +445,7 @@ export function AIChatWidget() {
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
-            className="flex max-h-[calc(100dvh-1rem)] min-h-[20rem] w-full flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white/95 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur transition-transform duration-200 ease-out sm:max-h-[min(calc(100dvh-2rem),40rem)] sm:min-h-0 sm:max-w-[24rem] lg:mr-0 dark:border-slate-700 dark:bg-slate-900/95"
+            className="flex max-h-[calc(100dvh-1rem)] min-h-[18rem] w-full flex-col overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white/95 shadow-[0_20px_60px_rgba(15,23,42,0.22)] backdrop-blur transition-transform duration-200 ease-out sm:max-h-[min(calc(100dvh-2rem),34rem)] sm:min-h-0 sm:max-w-[20rem] lg:mr-0 dark:border-slate-700 dark:bg-slate-900/95"
             style={{
               transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
             }}
@@ -435,14 +453,14 @@ export function AIChatWidget() {
             <div className="flex justify-center pt-2 sm:hidden">
               <div className="h-1.5 w-12 rounded-full bg-slate-300/90 dark:bg-slate-600/90" />
             </div>
-            <div className="shrink-0 border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),linear-gradient(180deg,_rgba(248,250,252,0.98)_0%,_rgba(255,255,255,0.98)_100%)] p-4 dark:border-slate-700 dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),linear-gradient(180deg,_rgba(15,23,42,0.98)_0%,_rgba(2,6,23,0.98)_100%)]">
+            <div className="shrink-0 border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),linear-gradient(180deg,_rgba(248,250,252,0.98)_0%,_rgba(255,255,255,0.98)_100%)] p-3.5 dark:border-slate-700 dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),linear-gradient(180deg,_rgba(15,23,42,0.98)_0%,_rgba(2,6,23,0.98)_100%)]">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-700 dark:border-sky-900/40 dark:bg-sky-950/30 dark:text-sky-300">
                     <Sparkles className="h-3.5 w-3.5" />
                     AI Shortcut
                   </div>
-                  <h2 className="mt-3 text-lg font-semibold text-slate-900 dark:text-white">SmartInvoice Copilot</h2>
+                  <h2 className="mt-2.5 text-base font-semibold text-slate-900 dark:text-white">SmartInvoice Copilot</h2>
                   <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                     {businessName ? `Working inside ${businessName}` : 'Prompt the assistant from anywhere in the dashboard.'}
                   </p>
@@ -451,7 +469,7 @@ export function AIChatWidget() {
                 <div className="flex items-center gap-2">
                   <Link
                     href={ROUTES.assistant}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                     aria-label="Open full assistant"
                   >
                     <ArrowRight className="h-4 w-4" />
@@ -459,7 +477,7 @@ export function AIChatWidget() {
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                     aria-label="Close AI assistant"
                   >
                     <X className="h-4 w-4" />
@@ -481,7 +499,7 @@ export function AIChatWidget() {
 
             <div
               ref={scrollRef}
-              className="ai-chat-scroll min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4 touch-pan-y"
+              className="ai-chat-scroll min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-3.5 touch-pan-y"
             >
               {requiresSelection ? (
                 <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
@@ -525,7 +543,7 @@ export function AIChatWidget() {
               ) : null}
             </div>
 
-            <div className="shrink-0 border-t border-slate-200 bg-slate-50/90 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-slate-700 dark:bg-slate-950/80">
+            <div className="shrink-0 border-t border-slate-200 bg-slate-50/90 p-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] dark:border-slate-700 dark:bg-slate-950/80">
               <div className="mb-3 flex flex-wrap gap-2">
                 {MODE_OPTIONS.map((item) => (
                   <button
@@ -543,20 +561,38 @@ export function AIChatWidget() {
                 ))}
               </div>
 
-              <div className="mb-3 flex flex-wrap gap-2">
-                {QUICK_PROMPTS.map((item) => (
+              <div className="mb-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                    Quick Prompts
+                  </p>
                   <button
-                    key={item.label}
                     type="button"
-                    onClick={() => {
-                      setPrompt(item.prompt);
-                      setMode(item.mode);
-                    }}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                    onClick={() => setShowQuickPrompts((current) => !current)}
+                    className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                   >
-                    {item.label}
+                    {showQuickPrompts ? 'Hide' : 'Show'}
+                    {showQuickPrompts ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                   </button>
-                ))}
+                </div>
+
+                {showQuickPrompts ? (
+                  <div className="flex flex-wrap gap-2">
+                    {QUICK_PROMPTS.map((item) => (
+                      <button
+                        key={item.label}
+                        type="button"
+                        onClick={() => {
+                          setPrompt(item.prompt);
+                          setMode(item.mode);
+                        }}
+                        className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
               <div className="flex items-end gap-2">
@@ -564,13 +600,13 @@ export function AIChatWidget() {
                   value={prompt}
                   onChange={(event) => setPrompt(event.target.value)}
                   placeholder="Ask for an invoice draft, report summary, or next action..."
-                  className="min-h-[72px] max-h-32 flex-1 resize-y rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className="min-h-[64px] max-h-28 flex-1 resize-y rounded-3xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                 />
                 <button
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => void submitPrompt()}
-                  className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
                   aria-label="Send prompt"
                 >
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -583,10 +619,10 @@ export function AIChatWidget() {
             <button
               type="button"
               onClick={() => setIsOpen(true)}
-              className="group inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-[0_18px_50px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800"
+              className="group inline-flex items-center gap-2.5 rounded-full border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-900 shadow-[0_16px_40px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800"
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-white dark:bg-white dark:text-slate-900">
-                <Bot className="h-5 w-5" />
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-white dark:bg-white dark:text-slate-900">
+                <Bot className="h-4.5 w-4.5" />
               </span>
               <span className="hidden sm:block">
                 Ask SmartInvoice AI
