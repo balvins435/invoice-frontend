@@ -759,13 +759,13 @@ export default function BusinessPage() {
         <div className="space-y-5">
 
           {/* Logo Upload */}
-          <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-5">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-950/50">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
               Business Logo (Optional)
             </p>
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
               <div
-                className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 transition-colors hover:border-gray-400 dark:hover:border-gray-500 ${
+                className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden border-2 border-dashed border-slate-300 bg-white transition-colors hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600 ${
                   logoShape === 'circle' ? 'rounded-full' : 'rounded-2xl'
                 }`}
               >
@@ -780,11 +780,11 @@ export default function BusinessPage() {
                     onError={() => handleLogoLoadError()}
                   />
                 ) : (
-                  <ImageIcon className="h-7 w-7 text-gray-300 dark:text-gray-600" />
+                  <ImageIcon className="h-7 w-7 text-slate-300 dark:text-slate-600" />
                 )}
               </div>
               <div className="flex-1">
-                <div className="mb-2 inline-flex items-center gap-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                <div className="mb-2 inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
                   <button
                     type="button"
                     onClick={() => {
@@ -793,8 +793,8 @@ export default function BusinessPage() {
                     }}
                     className={`rounded-lg px-2 py-1 ${
                       logoShape === 'rect'
-                        ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
-                        : 'text-gray-600 dark:text-gray-300'
+                        ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                        : 'text-slate-600 dark:text-slate-300'
                     }`}
                   >
                     Rect
@@ -807,8 +807,8 @@ export default function BusinessPage() {
                     }}
                     className={`rounded-lg px-2 py-1 ${
                       logoShape === 'circle'
-                        ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
-                        : 'text-gray-600 dark:text-gray-300'
+                        ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                        : 'text-slate-600 dark:text-slate-300'
                     }`}
                   >
                     Circle
@@ -818,12 +818,12 @@ export default function BusinessPage() {
                 <button
                   type="button"
                   onClick={() => createLogoInputRef.current?.click()}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 sm:w-auto"
                 >
                   <Upload className="h-4 w-4" />
                   Upload Logo
                 </button>
-                <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                   Recommended: 300×300px · PNG or JPG
                 </p>
               </div>
@@ -864,7 +864,7 @@ export default function BusinessPage() {
               required
             />
             <div className="sm:col-span-2">
-              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
                 Business Address
               </label>
               <textarea
@@ -877,18 +877,18 @@ export default function BusinessPage() {
           </div>
 
           {/* Footer */}
-          <div className="flex flex-col gap-3 border-t border-gray-100 dark:border-gray-800 pt-4 sm:flex-row-reverse sm:justify-between">
+          <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 dark:border-slate-800 sm:flex-row-reverse sm:justify-between">
             <button
               onClick={handleCreate}
               disabled={!isFormValid()}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-5 py-2.5 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 transition-all"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
             >
               <Plus className="h-4 w-4" />
               Create Business
             </button>
             <button
               onClick={() => { setShowCreateModal(false); resetForm(); }}
-              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               Cancel
             </button>
