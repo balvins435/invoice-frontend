@@ -57,6 +57,15 @@ const toNumber = (value: unknown): number => {
 const getBusinessId = (record: Record<string, unknown>): number =>
   toNumber(record.business_id ?? record.business);
 
+const createEmptyBusinessForm = () => ({
+  business_name: '',
+  email: '',
+  phone: '',
+  address: '',
+  tax_rate: 16.0,
+  logo_shape: 'rect',
+});
+
 export default function BusinessPage() {
   const [allInvoices, setAllInvoices] = useState<Array<Record<string, unknown>>>([]);
   const [allExpenses, setAllExpenses] = useState<Array<Record<string, unknown>>>([]);
@@ -75,14 +84,12 @@ export default function BusinessPage() {
   const editLogoInputRef = useRef<HTMLInputElement | null>(null);
   const createLogoInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [formData, setFormData] = useState({
-    business_name: '',
-    email: '',
-    phone: '',
-    address: '',
-    tax_rate: 16.0,
-    logo_shape: 'rect',
-  });
+  const [formData, setFormData] = useState(createEmptyBusinessForm);
+  const [createFormData, setCreateFormData] = useState(createEmptyBusinessForm);
+  const [createLogoFile, setCreateLogoFile] = useState<File | null>(null);
+  const [createLogoPreview, setCreateLogoPreview] = useState<string | null>(null);
+  const [createLogoShape, setCreateLogoShape] = useState<'rect' | 'circle'>('rect');
+  const [createLogoPreviewFailed, setCreateLogoPreviewFailed] = useState(false);
 
   const fetchFinancialData = useCallback(async () => {
     try {
@@ -175,6 +182,20 @@ export default function BusinessPage() {
     e.target.value = '';
   };
 
+  const handleCreateLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCreateLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCreateLogoPreview(reader.result as string);
+        setCreateLogoPreviewFailed(false);
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = '';
+  };
+
   const handleSave = async () => {
     if (!selectedBusiness) return;
     try {
@@ -193,12 +214,12 @@ export default function BusinessPage() {
   const handleCreate = async () => {
     try {
       const formDataToSend = new FormData();
-      Object.entries(formData).forEach(([key, value]) => formDataToSend.append(key, value.toString()));
-      if (logoFile) formDataToSend.append('logo', logoFile);
+      Object.entries(createFormData).forEach(([key, value]) => formDataToSend.append(key, value.toString()));
+      if (createLogoFile) formDataToSend.append('logo', createLogoFile);
       await apiService.business.create(formDataToSend);
       toast.success('Business created successfully');
       setShowCreateModal(false);
-      resetForm();
+      resetCreateForm();
       fetchBusinesses();
     } catch {
       toast.error('Failed to create business');
@@ -225,12 +246,17 @@ export default function BusinessPage() {
     }
   };
 
-  const resetForm = () => {
-    setFormData({ business_name: '', email: '', phone: '', address: '', tax_rate: 16.0, logo_shape: 'rect' });
-    setLogoFile(null);
-    setLogoPreview(null);
-    setLogoPreviewFailed(false);
-    setLogoShape('rect');
+  const resetCreateForm = () => {
+    setCreateFormData(createEmptyBusinessForm());
+    setCreateLogoFile(null);
+    setCreateLogoPreview(null);
+    setCreateLogoPreviewFailed(false);
+    setCreateLogoShape('rect');
+  };
+
+  const openCreateModal = () => {
+    resetCreateForm();
+    setShowCreateModal(true);
   };
 
   const handleLogoLoadError = (businessId?: number) => {
@@ -246,6 +272,12 @@ export default function BusinessPage() {
     formData.email.trim() !== '' &&
     formData.tax_rate >= 0 &&
     formData.tax_rate <= 100;
+
+  const isCreateFormValid = () =>
+    createFormData.business_name.trim() !== '' &&
+    createFormData.email.trim() !== '' &&
+    createFormData.tax_rate >= 0 &&
+    createFormData.tax_rate <= 100;
 
   const businessInvoices = selectedBusiness
     ? allInvoices.filter((invoice) => getBusinessId(invoice) === selectedBusiness.id)
@@ -283,7 +315,7 @@ export default function BusinessPage() {
               </p>
             </div>
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={openCreateModal}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-4 py-2.5 text-sm font-medium text-white dark:text-gray-900 shadow-sm transition-all hover:bg-gray-800 dark:hover:bg-gray-100 active:scale-[0.98]"
             >
               <Plus className="h-4 w-4" />
@@ -319,7 +351,7 @@ export default function BusinessPage() {
                       Create your first business to get started
                     </p>
                     <button
-                      onClick={() => setShowCreateModal(true)}
+                      onClick={openCreateModal}
                       className="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-gray-900 dark:bg-white px-4 py-2.5 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
                     >
                       <Plus className="h-4 w-4" />
@@ -734,7 +766,7 @@ export default function BusinessPage() {
                     Select a business from the list, or create a new one
                   </p>
                   <button
-                    onClick={() => setShowCreateModal(true)}
+                    onClick={openCreateModal}
                     className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-5 py-2.5 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
                   >
                     <Plus className="h-4 w-4" />
@@ -752,7 +784,7 @@ export default function BusinessPage() {
       ══════════════════════════════════════ */}
       <Modal
         isOpen={showCreateModal}
-        onClose={() => { setShowCreateModal(false); resetForm(); }}
+        onClose={() => { setShowCreateModal(false); resetCreateForm(); }}
         title="Create New Business"
         size="lg"
       >
@@ -766,18 +798,18 @@ export default function BusinessPage() {
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
               <div
                 className={`relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden border-2 border-dashed border-slate-300 bg-white transition-colors hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600 ${
-                  logoShape === 'circle' ? 'rounded-full' : 'rounded-2xl'
+                  createLogoShape === 'circle' ? 'rounded-full' : 'rounded-2xl'
                 }`}
               >
-                {logoPreview && !logoPreviewFailed ? (
+                {createLogoPreview && !createLogoPreviewFailed ? (
                   <Image
-                    src={logoPreview}
+                    src={createLogoPreview}
                     alt="Logo preview"
                     fill
                     unoptimized
                     sizes="80px"
-                    className={logoShape === 'circle' ? 'object-cover' : 'object-contain p-2'}
-                    onError={() => handleLogoLoadError()}
+                    className={createLogoShape === 'circle' ? 'object-cover' : 'object-contain p-2'}
+                    onError={() => setCreateLogoPreviewFailed(true)}
                   />
                 ) : (
                   <ImageIcon className="h-7 w-7 text-slate-300 dark:text-slate-600" />
@@ -788,11 +820,11 @@ export default function BusinessPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      setLogoShape('rect');
-                      setFormData((prev) => ({ ...prev, logo_shape: 'rect' }));
+                      setCreateLogoShape('rect');
+                      setCreateFormData((prev) => ({ ...prev, logo_shape: 'rect' }));
                     }}
                     className={`rounded-lg px-2 py-1 ${
-                      logoShape === 'rect'
+                      createLogoShape === 'rect'
                         ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
                         : 'text-slate-600 dark:text-slate-300'
                     }`}
@@ -802,11 +834,11 @@ export default function BusinessPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      setLogoShape('circle');
-                      setFormData((prev) => ({ ...prev, logo_shape: 'circle' }));
+                      setCreateLogoShape('circle');
+                      setCreateFormData((prev) => ({ ...prev, logo_shape: 'circle' }));
                     }}
                     className={`rounded-lg px-2 py-1 ${
-                      logoShape === 'circle'
+                      createLogoShape === 'circle'
                         ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
                         : 'text-slate-600 dark:text-slate-300'
                     }`}
@@ -814,7 +846,7 @@ export default function BusinessPage() {
                     Circle
                   </button>
                 </div>
-                <input ref={createLogoInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
+                <input ref={createLogoInputRef} type="file" className="hidden" accept="image/*" onChange={handleCreateLogoUpload} />
                 <button
                   type="button"
                   onClick={() => createLogoInputRef.current?.click()}
@@ -834,23 +866,23 @@ export default function BusinessPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input
               label="Business Name *"
-              value={formData.business_name}
-              onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
+              value={createFormData.business_name}
+              onChange={(e) => setCreateFormData({ ...createFormData, business_name: e.target.value })}
               placeholder="Enter business name"
               required
             />
             <Input
               label="Email Address *"
               type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              value={createFormData.email}
+              onChange={(e) => setCreateFormData({ ...createFormData, email: e.target.value })}
               placeholder="business@example.com"
               required
             />
             <Input
               label="Phone Number"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              value={createFormData.phone}
+              onChange={(e) => setCreateFormData({ ...createFormData, phone: e.target.value })}
               placeholder="+254 700 000000"
             />
             <Input
@@ -859,8 +891,8 @@ export default function BusinessPage() {
               min="0"
               max="100"
               step="0.1"
-              value={formData.tax_rate}
-              onChange={(e) => setFormData({ ...formData, tax_rate: parseFloat(e.target.value) || 0 })}
+              value={createFormData.tax_rate}
+              onChange={(e) => setCreateFormData({ ...createFormData, tax_rate: parseFloat(e.target.value) || 0 })}
               required
             />
             <div className="sm:col-span-2">
@@ -869,8 +901,8 @@ export default function BusinessPage() {
               </label>
               <textarea
                 className="input-primary min-h-[90px] w-full resize-none"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                value={createFormData.address}
+                onChange={(e) => setCreateFormData({ ...createFormData, address: e.target.value })}
                 placeholder="Enter full business address"
               />
             </div>
@@ -880,14 +912,14 @@ export default function BusinessPage() {
           <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 dark:border-slate-800 sm:flex-row-reverse sm:justify-between">
             <button
               onClick={handleCreate}
-              disabled={!isFormValid()}
+              disabled={!isCreateFormValid()}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
             >
               <Plus className="h-4 w-4" />
               Create Business
             </button>
             <button
-              onClick={() => { setShowCreateModal(false); resetForm(); }}
+              onClick={() => { setShowCreateModal(false); resetCreateForm(); }}
               className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               Cancel
