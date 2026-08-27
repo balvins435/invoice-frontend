@@ -37,6 +37,27 @@ const invoiceSchema = z.object({
 export type InvoiceFormValues = z.input<typeof invoiceSchema>;
 export type InvoiceFormData = z.output<typeof invoiceSchema>;
 
+const getApiErrorMessage = (error: unknown): string => {
+  if (typeof error !== 'object' || error === null || !('response' in error)) {
+    return 'Failed to create invoice';
+  }
+
+  const data = (error as { response?: { data?: unknown } }).response?.data;
+  if (typeof data === 'string') return data;
+  if (typeof data !== 'object' || data === null) return 'Failed to create invoice';
+
+  const entries = Object.entries(data as Record<string, unknown>);
+  for (const [field, value] of entries) {
+    const message = Array.isArray(value) ? value[0] : value;
+    if (typeof message === 'string') {
+      const label = field === 'non_field_errors' ? '' : `${field.replaceAll('_', ' ')}: `;
+      return `${label}${message}`;
+    }
+  }
+
+  return 'Failed to create invoice';
+};
+
 // ── Section wrapper ───────────────────────────────────────────────────────────
 const Section = ({ icon: Icon, title, subtitle, children }: {
   icon: React.ElementType; title: string; subtitle?: string; children: React.ReactNode;
@@ -170,15 +191,7 @@ export const InvoiceForm: React.FC = () => {
       toast.success(status === 'draft' ? 'Invoice saved as draft!' : 'Invoice created and sent!');
       setTimeout(() => router.push(ROUTES.invoices), 1000);
     } catch (err: unknown) {
-      const errorMessage = (
-        typeof err === 'object' &&
-        err !== null &&
-        'response' in err &&
-        typeof (err as { response?: { data?: { message?: string } } }).response?.data?.message === 'string'
-          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
-          : 'Failed to create invoice'
-      ) ?? 'Failed to create invoice';
-      toast.error(errorMessage);
+      toast.error(getApiErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }

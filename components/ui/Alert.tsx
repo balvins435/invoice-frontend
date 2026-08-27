@@ -56,6 +56,8 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
     return (
       <div
         ref={ref}
+        role={variant === 'error' ? 'alert' : 'status'}
+        aria-live={variant === 'error' ? 'assertive' : 'polite'}
         className={cn(
           'rounded-lg border p-4',
           variants[variant],
@@ -76,7 +78,9 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
             )}
           </div>
           {dismissible && (
-            <button
+              <button
+                type="button"
+                aria-label="Dismiss notification"
               onClick={onDismiss}
               className="ml-4 text-gray-400 hover:text-gray-500 focus:outline-none"
             >

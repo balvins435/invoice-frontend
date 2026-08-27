@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -8,6 +8,7 @@ interface ModalProps {
   title?: string;
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  description?: string;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -16,15 +17,24 @@ const Modal: React.FC<ModalProps> = ({
   title,
   children,
   size = 'md',
+  description,
 }) => {
+  const dialogRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
 
     if (isOpen) {
+      const previouslyFocused = document.activeElement as HTMLElement | null;
       document.addEventListener('keydown', handleEscape);
       document.body.style.overflow = 'hidden';
+      requestAnimationFrame(() => dialogRef.current?.focus());
+      return () => {
+        document.removeEventListener('keydown', handleEscape);
+        document.body.style.overflow = 'unset';
+        previouslyFocused?.focus();
+      };
     }
 
     return () => {
@@ -47,6 +57,12 @@ const Modal: React.FC<ModalProps> = ({
       <div className="flex min-h-screen items-center justify-center p-4">
         {/* Backdrop */}
         <div
+          ref={dialogRef}
+          role="dialog"
+          tabIndex={-1}
+          aria-modal="true"
+          aria-labelledby={title ? 'modal-title' : undefined}
+          aria-describedby={description ? 'modal-description' : undefined}
           className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity"
           onClick={onClose}
         />
@@ -61,18 +77,20 @@ const Modal: React.FC<ModalProps> = ({
           {/* Header */}
           {title && (
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
+              <h2 id="modal-title" className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
               <button
+                type="button"
+                aria-label="Close dialog"
                 onClick={onClose}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus:outline-none dark:hover:bg-slate-800 dark:hover:text-slate-200"
               >
-                <X className="h-5 w-5" />
+                <X aria-hidden="true" className="h-5 w-5" />
               </button>
             </div>
           )}
 
           {/* Content */}
-          <div className="p-6">{children}</div>
+          <div className="p-6">{description ? <p id="modal-description" className="sr-only">{description}</p> : null}{children}</div>
         </div>
       </div>
     </div>

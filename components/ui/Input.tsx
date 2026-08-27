@@ -31,10 +31,12 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       ? (showPassword ? 'text' : 'password')
       : type;
 
+    const inputId = props.id || `input-${label?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'field'}`;
+    const errorId = `${inputId}-error`;
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+          <label htmlFor={inputId} className="mb-1 block text-sm font-medium text-gray-700 dark:text-slate-300">
             {label}
           </label>
         )}
@@ -45,7 +47,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             </div>
           )}
           <input
+            id={inputId}
             type={inputType}
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? errorId : undefined}
             className={cn(
               'block w-full rounded-lg border border-gray-300 px-3 py-2.5',
               'focus:border-primary-500 focus:ring-primary-500 focus:outline-none',
@@ -60,8 +65,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {showPasswordToggle && type === 'password' && (
-            <button
-              type="button"
+              <button
+                type="button"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300"
               tabIndex={-1}
@@ -80,7 +87,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
         {error && (
-          <p className="mt-1 text-sm text-danger-600">{error}</p>
+          <p id={errorId} role="alert" className="mt-1 text-sm text-danger-600">{error}</p>
         )}
         {helperText && !error && (
           <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">{helperText}</p>

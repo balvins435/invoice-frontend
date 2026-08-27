@@ -1,4 +1,5 @@
-const DEFAULT_LOCAL_API_URL = 'http://localhost:8000/api';
+// 127.0.0.1 avoids IPv6 localhost resolution mismatches with Django's local bind.
+const DEFAULT_LOCAL_API_URL = 'http://127.0.0.1:8000/api';
 const DEFAULT_PROD_API_URL = 'https://invoice-backend-7zkw.onrender.com/api';
 
 const sanitizeApiUrl = (url: string): string => {

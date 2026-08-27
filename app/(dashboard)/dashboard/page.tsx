@@ -5,7 +5,6 @@ import {
   ArrowRight,
   BarChart3,
   Building,
-  Building2,
   CreditCard,
   FileText,
   Percent,
@@ -18,7 +17,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
 import { ActiveBusinessSelector } from '@/components/business/ActiveBusinessSelector';
-import { MetricCard } from '@/components/ui/MetricCard';
+import { Badge, EmptyState, ErrorState, LoadingState, MetricCard, Page, SectionHeader } from '@/components/ui';
 import { apiService } from '@/lib/api';
 import { useActiveBusiness } from '@/lib/hooks/useActiveBusiness';
 import { ROUTES } from '@/lib/routes';
@@ -33,13 +32,6 @@ const formatCompactMoney = (value: number, currency = 'KES', locale = 'en-KE') =
     maximumFractionDigits: 1,
   }).format(value);
 
-const SectionHeader = ({ title, action }: { title: string; action?: React.ReactNode }) => (
-  <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h2>
-    {action}
-  </div>
-);
-
 const toNumber = (value: unknown): number => {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
   if (typeof value === 'string') {
@@ -50,38 +42,9 @@ const toNumber = (value: unknown): number => {
 };
 
 const StatusBadge = ({ status }: { status: string }) => {
-  const colors: Record<string, string> = {
-    paid: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/30',
-    sent: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/30',
-    draft: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
-    partial: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/30',
-  };
-
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${colors[status] || colors.draft}`}>
-      {getStatusText(status)}
-    </span>
-  );
+  const variant = status === 'paid' ? 'success' : status === 'sent' ? 'default' : status === 'partial' ? 'warning' : 'secondary';
+  return <Badge variant={variant}>{getStatusText(status)}</Badge>;
 };
-
-const EmptyState = ({
-  title,
-  description,
-  action,
-}: {
-  title: string;
-  description: string;
-  action?: React.ReactNode;
-}) => (
-  <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900">
-    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-800">
-      <Building2 className="h-6 w-6 text-slate-500 dark:text-slate-300" />
-    </div>
-    <h2 className="mt-4 text-xl font-semibold text-slate-900 dark:text-white">{title}</h2>
-    <p className="mx-auto mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">{description}</p>
-    {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
-  </section>
-);
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -146,24 +109,11 @@ export default function DashboardPage() {
   const recentExpenses = dashboardStats?.recent_expenses || [];
 
   if ((isBusinessLoading || loading) && !dashboardStats && !requiresSelection && !businessError) {
-    return (
-      <main className="min-h-screen bg-slate-50 p-4 dark:bg-slate-950 sm:p-6 lg:p-8">
-        <div className="mx-auto max-w-7xl animate-pulse space-y-4 sm:space-y-6">
-          <div className="h-8 w-52 rounded-xl bg-slate-200 dark:bg-slate-800" />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[...Array(4)].map((_, index) => (
-              <div key={index} className="h-32 rounded-2xl bg-slate-200 dark:bg-slate-800" />
-            ))}
-          </div>
-          <div className="h-32 rounded-2xl bg-slate-200 dark:bg-slate-800" />
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div className="h-80 rounded-2xl bg-slate-200 dark:bg-slate-800" />
-            <div className="h-80 rounded-2xl bg-slate-200 dark:bg-slate-800" />
-          </div>
-        </div>
-      </main>
-    );
+    return <Page><LoadingState title="Loading dashboard" description="Fetching your latest business totals." /></Page>;
   }
+
+  if (businessError) return <Page><ErrorState title="Could not load businesses" description="We could not determine your active business." onAction={loadDashboard} /></Page>;
+  if (requiresSelection || !hasBusinesses) return <Page><EmptyState title="Create your first business" description="Add a business profile before viewing invoices, expenses, and reports." action={<Link href={ROUTES.business} className="btn-primary">Create business</Link>} /></Page>;
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 px-4 py-6 dark:from-slate-950 dark:to-slate-900 sm:px-6 lg:px-8 lg:py-8">

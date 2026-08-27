@@ -2,11 +2,14 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Environment Variables
 
-Create `frontend/.env.local` with:
+Create `invoice-frontend/.env.local` with:
 
 ```bash
-NEXT_PUBLIC_API_URL=http://localhost:8000/api
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000/api
 ```
+
+The checked-in `.env` may contain a deployed API URL. `.env.local` takes precedence
+for local development; restart the Next.js server after changing it.
 
 For production (e.g., Netlify/Vercel), set:
 
