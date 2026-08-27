@@ -100,11 +100,11 @@ export const Sidebar: React.FC = () => {
         {/* Logo */}
         <div className="px-6 py-5 border-b border-gray-200 dark:border-slate-700">
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center">
-              <FileText className="h-6 w-6 text-white" />
+            <div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center dark:bg-white">
+              <FileText className="h-6 w-6 text-white dark:text-slate-900" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-blue-600">InvoiceTracker</h1>
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white">InvoiceTracker</h1>
               <p className="text-xs text-gray-500 dark:text-slate-400">Smart Business Management</p>
             </div>
           </div>
@@ -113,8 +113,8 @@ export const Sidebar: React.FC = () => {
         {/* User info */}
         <div className="px-6 py-5 border-b border-gray-200 dark:border-slate-700">
           <div className="flex items-center space-x-3">
-            <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-              <User className="h-6 w-6 text-blue-600" />
+            <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center dark:bg-slate-800">
+              <User className="h-6 w-6 text-slate-600 dark:text-slate-300" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-gray-900 dark:text-slate-100 truncate">{userName}</p>
@@ -143,7 +143,7 @@ export const Sidebar: React.FC = () => {
                       flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium
                       transition-all duration-200
                       ${isActive
-                        ? 'bg-blue-50 text-blue-600 border border-blue-100 dark:bg-blue-950/40 dark:border-blue-800/60 dark:text-blue-300'
+                        ? 'bg-slate-100 text-slate-900 border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-white'
                         : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100'
                       }
                     `}
