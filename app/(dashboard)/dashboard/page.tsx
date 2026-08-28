@@ -116,7 +116,7 @@ export default function DashboardPage() {
   if (requiresSelection || !hasBusinesses) return <Page><EmptyState title="Create your first business" description="Add a business profile before viewing invoices, expenses, and reports." action={<Link href={ROUTES.business} className="btn-primary">Create business</Link>} /></Page>;
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 dark:bg-slate-950 sm:px-6 lg:px-8 lg:py-8">
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 px-4 py-6 dark:from-slate-950 dark:to-slate-900 sm:px-6 lg:px-8 lg:py-8">
       <div className="mx-auto max-w-7xl space-y-8 lg:space-y-10">
         <section className="space-y-4 sm:space-y-6">
           <div className="flex flex-col items-start justify-between gap-4 xl:flex-row xl:items-end">
@@ -198,7 +198,7 @@ export default function DashboardPage() {
                 subtitle="From paid invoices"
                 icon={TrendingUp}
                 trend="up"
-                tone="slate"
+                tone="emerald"
               />
               <MetricCard
                 label="Total Expenses"
@@ -207,21 +207,21 @@ export default function DashboardPage() {
                 subtitle={`${recentExpenses.length ? 'Recent activity loaded' : 'No recent expenses yet'}`}
                 icon={CreditCard}
                 trend="down"
-                tone="slate"
+                tone="red"
               />
               <MetricCard
                 label="Pending Invoices"
                 value={pendingInvoices}
                 subtitle="Awaiting payment"
                 icon={FileText}
-                tone="slate"
+                tone="amber"
               />
               <MetricCard
                 label="Active Clients"
                 value={totalClients}
                 subtitle="Unique billed clients"
                 icon={Users}
-                tone="slate"
+                tone="blue"
               />
             </section>
 
@@ -233,7 +233,7 @@ export default function DashboardPage() {
                 subtitle={netProfit >= 0 ? 'Profitable period' : 'Operating at a loss'}
                 icon={Percent}
                 trend={netProfit >= 0 ? 'up' : 'down'}
-                tone="slate"
+                tone={netProfit >= 0 ? 'blue' : 'red'}
               />
 
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:col-span-2">
@@ -241,13 +241,15 @@ export default function DashboardPage() {
                 <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {[
                     { label: 'New Invoice', icon: FileText, href: ROUTES.createInvoice, tone: 'blue' },
-                    { label: 'Add Expense', icon: CreditCard, href: ROUTES.createExpense, tone: 'slate' },
-                    { label: 'Reports', icon: BarChart3, href: ROUTES.reports, tone: 'slate' },
-                    { label: 'Business', icon: Building, href: ROUTES.business, tone: 'slate' },
+                    { label: 'Add Expense', icon: CreditCard, href: ROUTES.createExpense, tone: 'emerald' },
+                    { label: 'Reports', icon: BarChart3, href: ROUTES.reports, tone: 'violet' },
+                    { label: 'Business', icon: Building, href: ROUTES.business, tone: 'amber' },
                   ].map(({ label, icon: Icon, href, tone }) => {
                     const toneMap: Record<string, string> = {
-                      blue: 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 dark:bg-slate-800/60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800',
-                      slate: 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 dark:bg-slate-800/60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800',
+                      blue: 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 dark:bg-blue-950/30 dark:border-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-950/50',
+                      emerald: 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-950/50',
+                      violet: 'bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100 dark:bg-violet-950/30 dark:border-violet-900/40 dark:text-violet-300 dark:hover:bg-violet-950/50',
+                      amber: 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/30 dark:border-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-950/50',
                     };
                     const isPending = pendingRoute === href && pathname !== href;
 
@@ -342,7 +344,7 @@ export default function DashboardPage() {
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-red-100 text-xs font-semibold text-red-600 dark:bg-red-950/40 dark:text-red-400">
                               {idx + 1}
                             </div>
                             <div className="min-w-0">
