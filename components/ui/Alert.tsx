@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, CheckCircle, Info, XCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, Info, X, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const icons = {
@@ -11,9 +11,9 @@ const icons = {
 
 const variants = {
   info: 'bg-blue-50 text-blue-800 border-blue-200',
-  success: 'bg-success-50 text-success-800 border-success-200',
-  warning: 'bg-warning-50 text-warning-800 border-warning-200',
-  error: 'bg-danger-50 text-danger-800 border-danger-200',
+  success: 'border-green-200 bg-green-50 text-green-800 dark:border-green-900/50 dark:bg-green-950/40 dark:text-green-200',
+  warning: 'border-orange-200 bg-orange-50 text-orange-800 dark:border-orange-900/50 dark:bg-orange-950/40 dark:text-orange-200',
+  error: 'border-red-200 bg-red-50 text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200',
 };
 
 interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -78,13 +78,13 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
             )}
           </div>
           {dismissible && (
-              <button
+            <button
                 type="button"
                 aria-label="Dismiss notification"
               onClick={onDismiss}
-              className="ml-4 text-gray-400 hover:text-gray-500 focus:outline-none"
+              className="ml-4 inline-flex h-8 w-8 items-center justify-center rounded-md opacity-70 hover:bg-black/5 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current"
             >
-              <XCircle className="h-5 w-5" />
+              <X aria-hidden="true" className="h-4 w-4" />
             </button>
           )}
         </div>

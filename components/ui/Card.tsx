@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   title?: string;
   subtitle?: string;
   actions?: React.ReactNode;
@@ -21,8 +21,8 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
         {...props}
       >
         {(title || subtitle || actions) && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700">
-            <div>
+          <div className="flex flex-col gap-3 border-b border-gray-200 px-5 py-4 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div className="min-w-0">
               {title && (
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">{title}</h3>
               )}
@@ -30,10 +30,10 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
                 <p className="text-sm text-gray-500 mt-1 dark:text-slate-400">{subtitle}</p>
               )}
             </div>
-            {actions && <div className="flex items-center space-x-2">{actions}</div>}
+            {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
           </div>
         )}
-        <div className="p-6">{children}</div>
+        <div className="p-5 sm:p-6">{children}</div>
       </div>
     );
   }
@@ -48,7 +48,7 @@ const CardHeader = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      'flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700',
+      'flex flex-col gap-3 border-b border-gray-200 px-5 py-4 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between sm:px-6',
       className
     )}
     {...props}
@@ -87,7 +87,7 @@ const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn('p-6', className)} {...props} />
+  <div ref={ref} className={cn('p-5 sm:p-6', className)} {...props} />
 ));
 
 CardContent.displayName = 'CardContent';

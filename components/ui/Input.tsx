@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -26,13 +26,18 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     ...props 
   }, ref) => {
     const [showPassword, setShowPassword] = useState(false);
+    const generatedId = useId();
     
     const inputType = showPasswordToggle && type === 'password' 
       ? (showPassword ? 'text' : 'password')
       : type;
 
-    const inputId = props.id || `input-${label?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'field'}`;
+    const inputId = props.id || `input-${generatedId.replace(/:/g, '')}`;
     const errorId = `${inputId}-error`;
+    const helperId = `${inputId}-helper`;
+    const describedBy = [props['aria-describedby'], error ? errorId : helperText ? helperId : null]
+      .filter(Boolean)
+      .join(' ') || undefined;
     return (
       <div className="w-full">
         {label && (
@@ -50,13 +55,13 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             type={inputType}
             aria-invalid={Boolean(error)}
-            aria-describedby={error ? errorId : undefined}
+            aria-describedby={describedBy}
             className={cn(
               'block w-full rounded-lg border border-gray-300 px-3 py-2.5',
-              'focus:border-primary-500 focus:ring-primary-500 focus:outline-none',
+              'focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20',
               'transition-colors duration-200',
               'text-gray-900 placeholder-gray-400 dark:text-slate-100 dark:placeholder-slate-500 dark:bg-slate-900 dark:border-slate-700',
-              error && 'border-danger-500 focus:border-danger-500 focus:ring-danger-500',
+              error && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
               leftIcon && 'pl-10',
               (rightIcon || showPasswordToggle) && 'pr-10',
               className
@@ -70,8 +75,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
                 aria-pressed={showPassword}
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300"
-              tabIndex={-1}
+              className="absolute right-1 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
             >
               {showPassword ? (
                 <EyeOff className="h-5 w-5" />
@@ -87,10 +91,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
         {error && (
-          <p id={errorId} role="alert" className="mt-1 text-sm text-danger-600">{error}</p>
+          <p id={errorId} role="alert" className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>
         )}
         {helperText && !error && (
-          <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">{helperText}</p>
+          <p id={helperId} className="mt-1 text-sm text-gray-500 dark:text-slate-400">{helperText}</p>
         )}
       </div>
     );
