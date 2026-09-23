@@ -37,14 +37,14 @@ const invoiceSchema = z.object({
 export type InvoiceFormValues = z.input<typeof invoiceSchema>;
 export type InvoiceFormData = z.output<typeof invoiceSchema>;
 
-const getApiErrorMessage = (error: unknown): string => {
+const getApiErrorMessage = (error: unknown, fallback = 'Failed to create invoice'): string => {
   if (typeof error !== 'object' || error === null || !('response' in error)) {
-    return 'Failed to create invoice';
+    return fallback;
   }
 
   const data = (error as { response?: { data?: unknown } }).response?.data;
   if (typeof data === 'string') return data;
-  if (typeof data !== 'object' || data === null) return 'Failed to create invoice';
+  if (typeof data !== 'object' || data === null) return fallback;
 
   const entries = Object.entries(data as Record<string, unknown>);
   for (const [field, value] of entries) {
@@ -55,7 +55,7 @@ const getApiErrorMessage = (error: unknown): string => {
     }
   }
 
-  return 'Failed to create invoice';
+  return fallback;
 };
 
 // ── Section wrapper ───────────────────────────────────────────────────────────
@@ -185,7 +185,9 @@ export const InvoiceForm: React.FC = () => {
 
       if (status === 'sent') {
         try { await apiService.invoices.sendEmail(res.data.id); }
-        catch { toast.error('Invoice created, but email failed to send.'); }
+        catch (emailError: unknown) {
+          toast.error(getApiErrorMessage(emailError, 'Invoice created, but email failed to send.'), { duration: 8000 });
+        }
       }
 
       toast.success(status === 'draft' ? 'Invoice saved as draft!' : 'Invoice created and sent!');

@@ -26,6 +26,7 @@ import { apiService } from '@/lib/api';
 import { openAiChatShortcut } from '@/lib/ai';
 import { useActiveBusiness } from '@/lib/hooks/useActiveBusiness';
 import { ROUTES } from '@/lib/routes';
+import { downloadReportPdf } from '@/lib/reportDownloads';
 import { MonthlyReport, ProfitLossStatement, TaxSummary } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 
@@ -305,8 +306,8 @@ export default function ReportsPage() {
         year: selectedYear,
         ...(selectedMonth && { month: selectedMonth }),
       };
-      const response = await apiService.reports.downloadPDF(params);
-      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const blob = await downloadReportPdf(params);
+      const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
 
       const link = document.createElement('a');
       link.href = url;
@@ -314,6 +315,7 @@ export default function ReportsPage() {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
 
       toast.success('Report downloaded', { id: toastId });
     } catch {

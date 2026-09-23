@@ -208,8 +208,8 @@ export default function InvoicesPage() {
     try {
       await apiService.invoices.sendEmail(id);
       toast.success('Invoice sent via email');
-    } catch {
-      toast.error('Failed to send invoice email');
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to send invoice email'), { duration: 8000 });
     }
   };
 

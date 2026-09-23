@@ -1,6 +1,8 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
+export const APP_TIME_ZONE = 'Africa/Nairobi';
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -31,6 +33,7 @@ export function formatDate(date: string | Date): string {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+    timeZone: APP_TIME_ZONE,
   }).format(new Date(date));
 }
 
@@ -41,6 +44,7 @@ export function formatDateTime(date: string | Date): string {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: APP_TIME_ZONE,
   }).format(new Date(date));
 }
 
