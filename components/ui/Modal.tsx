@@ -32,6 +32,17 @@ export function Modal({
   initialFocusRef,
 }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  // Keep the focus/escape effect below out of the parent's render cycle: callers
+  // pass inline callbacks, so depending on them directly re-ran the effect on
+  // every keystroke and pulled focus out of the field being typed into.
+  const onCloseRef = useRef(onClose);
+  const initialFocusRefLatest = useRef(initialFocusRef);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+    initialFocusRefLatest.current = initialFocusRef;
+  }, [onClose, initialFocusRef]);
+
   const generatedId = useId().replace(/:/g, '');
   const titleId = `modal-${generatedId}-title`;
   const descriptionId = `modal-${generatedId}-description`;
@@ -44,14 +55,17 @@ export function Modal({
     document.body.style.overflow = 'hidden';
 
     const animationFrame = requestAnimationFrame(() => {
+      // Never pull focus away from an element the user already reached inside the
+      // dialog (for example by tapping an input before this frame ran).
+      if (dialogRef.current?.contains(document.activeElement)) return;
       const firstFocusable = dialogRef.current?.querySelector<HTMLElement>(focusableSelector);
-      (initialFocusRef?.current || firstFocusable || dialogRef.current)?.focus();
+      (initialFocusRefLatest.current?.current || firstFocusable || dialogRef.current)?.focus();
     });
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== 'Tab' || !dialogRef.current) return;
@@ -81,7 +95,7 @@ export function Modal({
       document.body.style.overflow = previousOverflow;
       previouslyFocused?.focus();
     };
-  }, [initialFocusRef, isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

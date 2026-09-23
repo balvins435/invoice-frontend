@@ -138,6 +138,11 @@ locks background scrolling, and exposes stable title and description relationshi
 Use `initialFocusRef` when the first interactive element is not the correct initial
 focus target. Disable backdrop dismissal for destructive or multi-step workflows.
 
+`onClose` and `initialFocusRef` may be passed inline: the dialog runs its
+open/close focus logic only when `isOpen` changes, so a re-render caused by typing
+in a field can never move the caret. Keep it that way - an effect that depends on a
+prop callback will steal focus on every keystroke.
+
 ### Card composition
 
 ```tsx
