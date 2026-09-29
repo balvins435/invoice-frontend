@@ -189,6 +189,7 @@ export default function LoginPage() {
               <Input
                 label="Password"
                 type="password"
+                showPasswordToggle
                 autoComplete="current-password"
                 error={errors.password?.message}
                 leftIcon={<Lock className="h-4 w-4" />}
