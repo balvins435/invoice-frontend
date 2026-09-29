@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 import { Spinner } from '@/components/ui/Spinner';
 import { authService } from '@/lib/auth';
@@ -16,10 +16,11 @@ interface RouteGuardProps {
 
 export const RouteGuard: React.FC<RouteGuardProps> = ({ mode, children }) => {
   const router = useRouter();
-  const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
   const [canRender, setCanRender] = useState(false);
 
+  // Deliberately not keyed on the pathname. Layouts persist across navigations, so
+  // listing it re-ran the auth check - and its /me/ request - on every page click.
   useEffect(() => {
     let isMounted = true;
 
@@ -28,7 +29,10 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ mode, children }) => {
       if (!isMounted) return;
 
       if (mode === 'protected' && !isAuthenticated) {
-        const target = sanitizeNextRoute(pathname, ROUTES.dashboard);
+        const target = sanitizeNextRoute(
+          `${window.location.pathname}${window.location.search}`,
+          ROUTES.dashboard
+        );
         router.replace(`${ROUTES.login}?next=${encodeURIComponent(target)}`);
         setCanRender(false);
         setIsLoading(false);
@@ -51,7 +55,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({ mode, children }) => {
     return () => {
       isMounted = false;
     };
-  }, [mode, pathname, router]);
+  }, [mode, router]);
 
   if (isLoading) {
     return (

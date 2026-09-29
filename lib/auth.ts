@@ -1,5 +1,6 @@
 import { User } from '@/types';
 import api, { setAuthTokens, clearAuthTokens } from './api';
+import { API_URL } from './config';
 import { ROUTES, sanitizeNextRoute } from './routes';
 import { session } from './session';
 
@@ -40,15 +41,22 @@ const extractErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
+// How long a validated profile is trusted before RouteGuard asks the API again.
+// Long enough that moving between pages never re-issues /me/, short enough that a
+// sign-out in another tab is noticed quickly.
+const AUTH_PROFILE_TTL_MS = 60_000;
+
 class AuthService {
   private user: User | null = null;
   private token: string | null = null;
   private authCheckPromise: Promise<boolean> | null = null;
+  private authCheckedAt = 0;
 
   constructor() {
     if (typeof window !== 'undefined') {
       this.loadUserFromStorage();
       this.token = session.accessToken;
+      this.authCheckedAt = Date.now();
       
       // Set token in axios defaults if exists
       if (this.token) {
@@ -72,6 +80,7 @@ class AuthService {
     if (typeof window !== 'undefined') {
       session.setRawUser(JSON.stringify(user));
       this.user = user;
+      this.authCheckedAt = Date.now();
     }
   }
 
@@ -166,6 +175,14 @@ class AuthService {
   }
 
   async checkAuth(): Promise<boolean> {
+    // RouteGuard calls this on mount, and layouts persist across navigations, so
+    // without a cache every page click paid for another /me/ round trip. A profile
+    // read within the TTL for an unexpired token is good enough; expiry, revocation
+    // and 401s are still handled by performAuthCheck and the axios interceptor.
+    if (this.hasFreshProfile()) {
+      return true;
+    }
+
     if (this.authCheckPromise) return this.authCheckPromise;
     this.authCheckPromise = this.performAuthCheck();
     try {
@@ -173,6 +190,15 @@ class AuthService {
     } finally {
       this.authCheckPromise = null;
     }
+  }
+
+  private hasFreshProfile(): boolean {
+    return Boolean(
+      this.user &&
+        this.token &&
+        !session.isAccessTokenExpired() &&
+        Date.now() - this.authCheckedAt < AUTH_PROFILE_TTL_MS
+    );
   }
 
   private async performAuthCheck(): Promise<boolean> {
@@ -261,26 +287,36 @@ class AuthService {
   }
 
   async logout(options: LogoutOptions = {}) {
-    try {
-      const refreshToken = session.refreshToken;
-      if (refreshToken) {
-        await api.post('/logout/', { refresh: refreshToken });
-      }
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      this.clearAuth();
-      
-      // Redirect to login
-      if (typeof window !== 'undefined') {
-        const next = sanitizeNextRoute(
-          `${window.location.pathname}${window.location.search}`,
-          ROUTES.dashboard
-        );
-        const fallback = `${ROUTES.login}?next=${encodeURIComponent(next)}`;
-        const target = options.redirectTo || fallback;
-        window.location.replace(target);
-      }
+    // Sign out locally without waiting on the server. Awaiting the blacklist call
+    // left the button hanging for the full 10s request timeout on a cold backend.
+    // `keepalive` lets the revocation request finish even though the redirect
+    // below unloads the page.
+    const refreshToken = session.refreshToken;
+    const accessToken = session.accessToken;
+
+    if (refreshToken) {
+      void fetch(`${API_URL}/logout/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({ refresh: refreshToken }),
+        keepalive: true,
+      }).catch((error) => console.error('Logout error:', error));
+    }
+
+    this.clearAuth();
+
+    // Redirect to login
+    if (typeof window !== 'undefined') {
+      const next = sanitizeNextRoute(
+        `${window.location.pathname}${window.location.search}`,
+        ROUTES.dashboard
+      );
+      const fallback = `${ROUTES.login}?next=${encodeURIComponent(next)}`;
+      const target = options.redirectTo || fallback;
+      window.location.replace(target);
     }
   }
 
@@ -324,6 +360,7 @@ class AuthService {
     }
     this.user = null;
     this.token = null;
+    this.authCheckedAt = 0;
     
     console.log('🧹 Auth cleared');
   }

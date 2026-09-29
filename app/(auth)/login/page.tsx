@@ -65,7 +65,7 @@ export default function LoginPage() {
       const result = await authService.login(data.email, data.password);
       if (result.success) {
         toast.success('Welcome back!', { duration: 2000 });
-        setTimeout(() => router.replace(nextRoute), 500);
+        router.replace(nextRoute);
       } else {
         toast.error(result.error || 'Invalid credentials. Please try again.');
         setValue('password', '');
