@@ -17,7 +17,7 @@ import { apiService } from '@/lib/api';
 import { consumeAiInvoiceDraft } from '@/lib/ai';
 import { getStoredActiveBusinessId } from '@/lib/hooks/useActiveBusiness';
 import { ROUTES } from '@/lib/routes';
-import { Business } from '@/types';
+import { Business, Invoice } from '@/types';
 import { cn } from '@/lib/utils';
 
 // ── Schema ───────────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ const getApiErrorMessage = (error: unknown, fallback = 'Failed to create invoice
   for (const [field, value] of entries) {
     const message = Array.isArray(value) ? value[0] : value;
     if (typeof message === 'string') {
-      const label = field === 'non_field_errors' ? '' : `${field.replaceAll('_', ' ')}: `;
+      const label = field === 'non_field_errors' || field === 'detail' || field === 'error' ? '' : `${field.replaceAll('_', ' ')}: `;
       return `${label}${message}`;
     }
   }
@@ -79,8 +79,28 @@ const Section = ({ icon: Icon, title, subtitle, children }: {
 );
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export const InvoiceForm: React.FC = () => {
+const emptyItem = () => ({ description: '', quantity: 1, unit_price: 0, total: 0 });
+
+const invoiceDefaultValues = (invoice: Invoice) => ({
+  business_id: String(invoice.business_id ?? invoice.business ?? ''),
+  client_name: invoice.client_name || '',
+  client_email: invoice.client_email || '',
+  issue_date: invoice.issue_date || format(new Date(), 'yyyy-MM-dd'),
+  due_date: invoice.due_date || format(new Date(), 'yyyy-MM-dd'),
+  items: invoice.items?.length
+    ? invoice.items.map((item) => ({
+        description: item.description || '',
+        quantity: Number(item.quantity) || 1,
+        unit_price: Number(item.unit_price) || 0,
+        total: Number(item.total) || 0,
+      }))
+    : [emptyItem()],
+  status: (invoice.status === 'sent' ? 'sent' : 'draft') as 'draft' | 'sent',
+});
+
+export const InvoiceForm: React.FC<{ invoice?: Invoice }> = ({ invoice }) => {
   const router = useRouter();
+  const isEditing = Boolean(invoice);
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,15 +111,17 @@ export const InvoiceForm: React.FC = () => {
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<InvoiceFormValues, unknown, InvoiceFormData>({
     resolver: zodResolver(invoiceSchema),
-    defaultValues: {
-      business_id: '',
-      client_name: '',
-      client_email: '',
-      issue_date: format(new Date(), 'yyyy-MM-dd'),
-      due_date: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
-      items: [{ description: '', quantity: 1, unit_price: 0, total: 0 }],
-      status: 'draft',
-    },
+    defaultValues: invoice
+      ? invoiceDefaultValues(invoice)
+      : {
+          business_id: '',
+          client_name: '',
+          client_email: '',
+          issue_date: format(new Date(), 'yyyy-MM-dd'),
+          due_date: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+          items: [emptyItem()],
+          status: 'draft',
+        },
   });
 
   const items = watch('items');
@@ -111,6 +133,17 @@ export const InvoiceForm: React.FC = () => {
       const res = await apiService.business.getAll();
       const businessList = res.data.results || res.data;
       setBusinesses(businessList);
+
+      if (invoice) {
+        const invoiceBusinessId = invoice.business_id ?? invoice.business;
+        const invoiceBusiness = businessList.find(
+          (business: Business) => business.id === invoiceBusinessId
+        );
+        if (invoiceBusiness) {
+          setValue('business_id', String(invoiceBusiness.id), { shouldValidate: true });
+        }
+        return;
+      }
 
       const aiDraft = consumeAiInvoiceDraft();
       const storedBusinessId = getStoredActiveBusinessId();
@@ -151,7 +184,7 @@ export const InvoiceForm: React.FC = () => {
       }
     } catch { toast.error('Failed to load businesses'); }
     finally  { setIsLoading(false); }
-  }, [setValue]);
+  }, [invoice, setValue]);
 
   useEffect(() => { fetchBusinesses(); }, [fetchBusinesses]);
   useEffect(() => {
@@ -161,9 +194,10 @@ export const InvoiceForm: React.FC = () => {
   }, [businessId, businesses]);
   useEffect(() => {
     if (selectedBusiness) {
-      setTemplate(selectedBusiness.default_invoice_template || 'classic');
+      // An existing draft keeps its own template; a new invoice inherits the business default.
+      setTemplate(invoice?.template || selectedBusiness.default_invoice_template || 'classic');
     }
-  }, [selectedBusiness]);
+  }, [invoice?.template, selectedBusiness]);
 
   const calculateItemTotal = (index: number, quantity: number, unitPrice: number) => {
     setValue(`items.${index}.total`, quantity * unitPrice);
@@ -183,26 +217,36 @@ export const InvoiceForm: React.FC = () => {
       const taxRate  = selectedBusiness?.tax_rate || 16;
       const tax      = (subtotal * taxRate) / 100;
 
-      const res = await apiService.invoices.create({
+      // Editing always persists the draft; sending stays an explicit second step
+      // because the API locks invoices that are no longer drafts.
+      const payload = {
         ...data,
         template,
         business_id: parseInt(data.business_id),
         subtotal: +subtotal.toFixed(2),
         tax_amount: +tax.toFixed(2),
         total_amount: +(subtotal + tax).toFixed(2),
-        status,
+        status: invoice ? 'draft' : status,
         items: data.items.map(i => ({ ...i, total: +i.total.toFixed(2) })),
-      });
+      };
+
+      const res = invoice
+        ? await apiService.invoices.update(invoice.id, payload)
+        : await apiService.invoices.create(payload);
 
       if (status === 'sent') {
         try { await apiService.invoices.sendEmail(res.data.id); }
         catch (emailError: unknown) {
-          toast.error(getApiErrorMessage(emailError, 'Invoice created, but email failed to send.'), { duration: 8000 });
+          toast.error(getApiErrorMessage(emailError, 'Invoice saved, but email failed to send.'), { duration: 8000 });
         }
       }
 
-      toast.success(status === 'draft' ? 'Invoice saved as draft!' : 'Invoice created and sent!');
-      setTimeout(() => router.push(ROUTES.invoices), 1000);
+      toast.success(
+        invoice
+          ? status === 'sent' ? 'Draft updated and sent!' : 'Draft updated!'
+          : status === 'draft' ? 'Invoice saved as draft!' : 'Invoice created and sent!'
+      );
+      setTimeout(() => router.push(invoice ? ROUTES.invoiceDetail(invoice.id) : ROUTES.invoices), 1000);
     } catch (err: unknown) {
       toast.error(getApiErrorMessage(err));
     } finally {
@@ -214,7 +258,7 @@ export const InvoiceForm: React.FC = () => {
   const selectCls = 'w-full appearance-none rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 pr-8 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white transition-colors';
 
   return (
-    <form id="invoice-form" onSubmit={handleSubmit((d) => onSubmit(d, 'draft'))} noValidate>
+    <form id={isEditing ? 'invoice-edit-form' : 'invoice-form'} onSubmit={handleSubmit((d) => onSubmit(d, 'draft'))} noValidate>
       <div className="space-y-8">
 
         {/* ── Business selection ── */}
@@ -225,7 +269,7 @@ export const InvoiceForm: React.FC = () => {
               <div className="relative">
                 <select
                   {...register('business_id')}
-                  disabled={isLoading}
+                  disabled={isLoading || isEditing}
                   className={cn(selectCls, errors.business_id && 'border-red-400 dark:border-red-600')}
                 >
                   <option value="">{isLoading ? 'Loading…' : 'Choose a business'}</option>
@@ -280,7 +324,7 @@ export const InvoiceForm: React.FC = () => {
         <div>
           <div className="mb-4">
             <p className="text-sm font-semibold text-gray-900 dark:text-white">Invoice Items</p>
-            <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">Add the products or services you&apos;re billing for</p>
+            <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">Add as many products or services as you are billing for</p>
           </div>
           <InvoiceItemsTable
             items={items} register={register} errors={errors}
@@ -322,13 +366,13 @@ export const InvoiceForm: React.FC = () => {
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
           >
             <Save className="h-4 w-4" />
-            Save as Draft
+            {isEditing ? 'Save changes' : 'Save as Draft'}
           </button>
           <button type="button" disabled={isSubmitting} onClick={handleSubmit((d) => onSubmit(d, 'sent'))}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-5 py-2.5 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-50 transition-all shadow-sm"
           >
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            {isSubmitting ? 'Creating…' : 'Create & Send'}
+            {isSubmitting ? (isEditing ? 'Saving…' : 'Creating…') : isEditing ? 'Save & Send' : 'Create & Send'}
           </button>
         </div>
       </div>

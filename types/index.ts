@@ -83,6 +83,7 @@ export interface Invoice {
   tax_amount: number;
   total_amount: number;
   currency?: string;
+  template?: InvoiceTemplateId | '';
   tax_invoice_number?: string;
   etims_synced_at?: string | null;
   status: 'draft' | 'sent' | 'paid' | 'pending' | 'partial';

@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, Building2, FileText } from 'lucide-react';
+import { ArrowLeft, Building2, FileText, Lock, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { Navbar } from '@/components/Navbar';
@@ -117,8 +117,27 @@ export default function InvoiceDetailPage() {
                     <p className="mt-1 text-sm text-slate-500">{invoice.client_name}</p>
                     <p className="text-xs text-slate-500">{invoice.client_email}</p>
                   </div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
-                    Status: {invoice.status}
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+                      Status: {invoice.status}
+                    </div>
+                    {invoice.status === 'draft' ? (
+                      <Link
+                        href={ROUTES.editInvoice(invoice.id)}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-gray-900 px-3 py-2 text-xs font-semibold text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        Edit draft
+                      </Link>
+                    ) : (
+                      <span
+                        title="Only draft invoices can be edited. This invoice has already been sent to the client."
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-400 dark:border-slate-700 dark:text-slate-500"
+                      >
+                        <Lock className="h-3.5 w-3.5" />
+                        Locked
+                      </span>
+                    )}
                   </div>
                 </div>
 

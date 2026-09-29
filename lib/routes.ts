@@ -9,6 +9,8 @@ export const ROUTES = {
   business: '/business',
   invoices: '/invoices',
   createInvoice: '/invoices/create',
+  invoiceDetail: (id: number | string) => `/invoices/${id}`,
+  editInvoice: (id: number | string) => `/invoices/${id}/edit`,
   expenses: '/expenses',
   createExpense: '/expenses/create',
   payments: '/payments',

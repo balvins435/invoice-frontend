@@ -414,6 +414,9 @@ export default function InvoicesPage() {
 
   const ActionButtons = ({ invoice }: { invoice: Invoice }) => (
     <div className="flex flex-wrap gap-1.5">
+      {invoice.status === 'draft' ? (
+        <Link href={ROUTES.editInvoice(invoice.id)} className="rounded-lg bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">Edit</Link>
+      ) : null}
       <button onClick={() => handleDownloadPDF(invoice.id)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">PDF</button>
       <button onClick={() => handleSendEmail(invoice.id)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Email</button>
       <button
