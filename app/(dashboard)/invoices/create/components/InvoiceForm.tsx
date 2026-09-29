@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Calendar, Building2, User, Mail, Save, Send, Loader2, ChevronDown } from 'lucide-react';
+import { Calendar, Building2, User, Mail, Save, Send, Loader2, ChevronDown, LayoutTemplate } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { Input } from '@/components/ui/Input';
+import { TemplatePicker } from '@/components/invoices/TemplatePicker';
+import { useInvoiceTemplates } from '@/lib/useInvoiceTemplates';
 import { InvoiceItemsTable } from './InvoiceItemsTable';
 import { InvoiceSummary } from './InvoiceSummary';
 import { apiService } from '@/lib/api';
@@ -83,6 +85,9 @@ export const InvoiceForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+  const [template, setTemplate] = useState('classic');
+
+  const { templates: invoiceTemplates, isLoading: templatesLoading } = useInvoiceTemplates();
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<InvoiceFormValues, unknown, InvoiceFormData>({
     resolver: zodResolver(invoiceSchema),
@@ -154,6 +159,11 @@ export const InvoiceForm: React.FC = () => {
       setSelectedBusiness(businesses.find(b => b.id.toString() === businessId) || null);
     }
   }, [businessId, businesses]);
+  useEffect(() => {
+    if (selectedBusiness) {
+      setTemplate(selectedBusiness.default_invoice_template || 'classic');
+    }
+  }, [selectedBusiness]);
 
   const calculateItemTotal = (index: number, quantity: number, unitPrice: number) => {
     setValue(`items.${index}.total`, quantity * unitPrice);
@@ -175,6 +185,7 @@ export const InvoiceForm: React.FC = () => {
 
       const res = await apiService.invoices.create({
         ...data,
+        template,
         business_id: parseInt(data.business_id),
         subtotal: +subtotal.toFixed(2),
         tax_amount: +tax.toFixed(2),
@@ -274,6 +285,29 @@ export const InvoiceForm: React.FC = () => {
           <InvoiceItemsTable
             items={items} register={register} errors={errors}
             onCalculate={calculateItemTotal} onAdd={addItem} onRemove={removeItem}
+          />
+        </div>
+
+        <div className="border-t border-gray-100 dark:border-gray-800" />
+
+        {/* Invoice design */}
+        <div>
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800">
+              <LayoutTemplate className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">Invoice design</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Choose the template your client receives. Defaults to this business&apos;s preferred look.
+              </p>
+            </div>
+          </div>
+          <TemplatePicker
+            templates={invoiceTemplates}
+            isLoading={templatesLoading}
+            value={template}
+            onChange={setTemplate}
           />
         </div>
 

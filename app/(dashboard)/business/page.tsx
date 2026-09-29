@@ -7,6 +7,7 @@ import {
   Mail,
   Phone,
   MapPin,
+  LayoutTemplate,
   Edit,
   Save,
   Upload,
@@ -23,9 +24,13 @@ import { Navbar } from '@/components/Navbar';
 import { Input } from '@/components/ui/Input';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { Modal } from '@/components/ui/Modal';
+import { TemplatePicker } from '@/components/invoices/TemplatePicker';
+import { TemplatePreview } from '@/components/invoices/TemplatePreview';
 import { apiService } from '@/lib/api';
 import { API_ORIGIN } from '@/lib/config';
 import { getStoredActiveBusinessId, setStoredActiveBusinessId } from '@/lib/hooks/useActiveBusiness';
+import { findInvoiceTemplate } from '@/lib/templates';
+import { useInvoiceTemplates } from '@/lib/useInvoiceTemplates';
 import { Business } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -64,9 +69,11 @@ const createEmptyBusinessForm = () => ({
   address: '',
   tax_rate: 16.0,
   logo_shape: 'rect',
+  default_invoice_template: 'classic',
 });
 
 export default function BusinessPage() {
+  const { templates: invoiceTemplates, isLoading: templatesLoading } = useInvoiceTemplates();
   const [allInvoices, setAllInvoices] = useState<Array<Record<string, unknown>>>([]);
   const [allExpenses, setAllExpenses] = useState<Array<Record<string, unknown>>>([]);
   const [isStatsLoading, setIsStatsLoading] = useState(false);
@@ -126,6 +133,7 @@ export default function BusinessPage() {
             address: firstBusiness.address,
             tax_rate: firstBusiness.tax_rate,
             logo_shape: firstBusiness.logo_shape || 'rect',
+            default_invoice_template: firstBusiness.default_invoice_template || 'classic',
           });
           setLogoPreview(getLogoUrl(firstBusiness.logo));
           setLogoShape((firstBusiness.logo_shape as 'rect' | 'circle') || 'rect');
@@ -149,6 +157,8 @@ export default function BusinessPage() {
     fetchFinancialData();
   }, [fetchFinancialData]);
 
+  const selectedTemplate = findInvoiceTemplate(invoiceTemplates, selectedBusiness?.default_invoice_template);
+
   const handleSelectBusiness = (business: Business) => {
     setStoredActiveBusinessId(business.id);
     setSelectedBusiness(business);
@@ -161,6 +171,7 @@ export default function BusinessPage() {
       address: business.address,
       tax_rate: business.tax_rate,
       logo_shape: business.logo_shape || 'rect',
+      default_invoice_template: business.default_invoice_template || 'classic',
     });
     setLogoPreview(getLogoUrl(business.logo));
     setLogoShape((business.logo_shape as 'rect' | 'circle') || 'rect');
@@ -714,6 +725,43 @@ export default function BusinessPage() {
                           </p>
                         )}
                       </div>
+
+                      {/* Invoice template */}
+                      <div className="bg-white dark:bg-gray-900 p-5 sm:col-span-2 lg:col-span-2">
+                        <div className="mb-3 flex items-center gap-2">
+                          <LayoutTemplate className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                          <label className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                            Invoice Template
+                          </label>
+                        </div>
+                        {isEditing ? (
+                          <TemplatePicker
+                            templates={invoiceTemplates}
+                            isLoading={templatesLoading}
+                            value={formData.default_invoice_template}
+                            onChange={(id) =>
+                              setFormData((prev) => ({ ...prev, default_invoice_template: id }))
+                            }
+                          />
+                        ) : (
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                            {selectedTemplate && (
+                              <div className="w-24 shrink-0 rounded-xl border border-gray-200 p-1.5 dark:border-gray-700">
+                                <TemplatePreview template={selectedTemplate} />
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                {selectedTemplate?.name ?? 'Classic'}
+                              </p>
+                              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                {selectedTemplate?.description ??
+                                  'Applied to new invoices for this business.'}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -906,6 +954,28 @@ export default function BusinessPage() {
                 placeholder="Enter full business address"
               />
             </div>
+          </div>
+
+          {/* Invoice template */}
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <LayoutTemplate className="h-4 w-4 text-slate-400 dark:text-slate-500" />
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                Invoice Template
+              </p>
+            </div>
+            <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
+              Pick the look new invoices will use. You can change it any time.
+            </p>
+            <TemplatePicker
+              templates={invoiceTemplates}
+              isLoading={templatesLoading}
+              value={createFormData.default_invoice_template}
+              onChange={(id) =>
+                setCreateFormData((prev) => ({ ...prev, default_invoice_template: id }))
+              }
+              columns={2}
+            />
           </div>
 
           {/* Footer */}

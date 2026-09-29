@@ -44,7 +44,21 @@ export interface Business {
   logo: string | null;
   logo_shape?: 'rect' | 'circle';
   tax_rate: number;
+  default_invoice_template?: InvoiceTemplateId | '';
   created_at: string;
+}
+
+// Invoice template types
+export type InvoiceTemplateId = 'classic' | 'modern' | 'minimal' | 'letterhead';
+
+export type InvoiceTemplateLayout = 'hero' | 'letterhead';
+
+export interface InvoiceTemplate {
+  id: InvoiceTemplateId;
+  name: string;
+  description: string;
+  layout: InvoiceTemplateLayout;
+  palette: Record<string, string>;
 }
 
 // Invoice Types

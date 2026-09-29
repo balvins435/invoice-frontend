@@ -151,6 +151,7 @@ export const apiService = {
     update: (id: number, data: RequestBody) => api.patch(`/invoice/${id}/`, data),
     delete: (id: number) => api.delete(`/invoice/${id}/`),
     markAsPaid: (id: number) => api.post(`/invoice/${id}/mark_paid/`),
+    getTemplates: () => api.get('/invoice/templates/'),
     // Delivery happens synchronously (PDF render + provider round-trip), so it needs
     // a larger budget than the default 10s request timeout.
     sendEmail: (id: number) =>
